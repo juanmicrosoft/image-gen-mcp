@@ -14,7 +14,7 @@ implicit `.env` loading or hidden configuration-file precedence.
 | `IMAGE_GEN_AUTH` | `azure-cli` (default) or explicit `api-key`; never an automatic chain. |
 | `AZURE_TENANT_ID` | Optional tenant UUID for CLI authentication. |
 | `AZURE_OPENAI_API_KEY` | Required only for API-key mode; conflicting CLI/key settings fail. |
-| `IMAGE_GEN_PREVIEW` | `true` (default) or `false`; controls image previews once tools are connected. |
+| `IMAGE_GEN_PREVIEW` | `true` (default) or `false`; controls bounded inline image previews. Empty values are invalid. |
 
 Azure CLI auth uses `AzureCliCredential` with audience
 `https://cognitiveservices.azure.com/.default`. Run `az login` for the intended
@@ -31,7 +31,8 @@ not advertised by this version.
 
 GUI-launched VS Code may not inherit shell variables or the shell's Azure CLI
 PATH; configure the server's environment explicitly rather than assuming a shell
-export reached the editor. Client examples belong in the tested onboarding guide.
+export reached the editor. See the separate [client examples and evidence](clients.md);
+the current VS Code workflow remains unverified.
 
 Tests validate explicit selection and safe errors with injected credentials,
 not live permission grants. The issue #11 administrator blocker remains open.

@@ -7,7 +7,7 @@ Unsupported directory sync fails closed.
 
 Each UUID has an immutable `image.png` and versioned `manifest.json`. The manifest
 contains dimensions, SHA-256, creation time, deployment/model evidence status,
-effective options and optional source ID/hash and safe request ID. It contains no
+requested options and optional source ID/hash, safe request ID and usage. It contains no
 prompt, API key or source filename. Artifacts remain until explicitly removed by
 the operator; no automatic age-based deletion is performed.
 
@@ -28,5 +28,7 @@ for diagnosis and is never automatically reused. A provider request may already
 have succeeded when persistence fails. Retrieve a committed UUID before deciding
 whether another billable request is appropriate.
 
+Requested quality is retained when Azure omits it; a contradictory returned
+quality fails before saving. Missing usage is unknown, not zero.
 Tests: `npm test` (artifact and stdio suites). Broader disk-failure and process
-interruption evidence is tracked in issue #24, not implied by this contract.
+interruption boundaries are recorded in [reliability evidence](evidence/reliability.md).
