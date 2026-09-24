@@ -87,7 +87,7 @@ export async function readLocalImage(path: string, roots: readonly string[]): Pr
   return result;
 }
 
-async function readRegularFile(path: string, limit: number): Promise<Buffer> {
+export async function readRegularFile(path: string, limit: number): Promise<Buffer> {
   const entry = await lstat(path);
   if (!entry.isFile() || entry.size > limit) throw new Error("Input is not a bounded regular file.");
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
