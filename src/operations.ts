@@ -13,10 +13,11 @@ const recordSchema = z.object({
 }).strict();
 type OperationRecord = z.infer<typeof recordSchema>;
 export type OperationStatus = OperationRecord & { artifact?: Artifact; recovered: boolean };
+const uncertaintyWarning = "Upstream processing may continue and charges may apply. Automatic resubmission is unsafe; inspect this operation with get_operation.";
 
 export class OperationError extends Error {
-  constructor(readonly code: "busy" | "conflict" | "outcome_unknown" | "previous_failure", message: string) {
-    super(message);
+  constructor(readonly code: "busy" | "conflict" | "outcome_unknown" | "previous_failure", message: string, options?: ErrorOptions) {
+    super(message, options);
   }
 }
 
@@ -73,7 +74,7 @@ export class OperationStore {
     const status = await this.status(record.id);
     if (status?.artifact) return status.artifact;
     if (record.state === "failed") throw new OperationError("previous_failure", "This operation failed. Inspect its outcome before explicitly choosing a new ID.");
-    throw new OperationError("outcome_unknown", "Upstream outcome unknown. Do not resubmit automatically; use get_operation to inspect.");
+    throw new OperationError("outcome_unknown", uncertaintyWarning);
   }
 
   async run(id: string, request: Record<string, string>, submit: (artifactId: string) => Promise<Artifact>): Promise<Artifact> {
@@ -105,7 +106,8 @@ export class OperationStore {
       } catch (error) {
         const knownFailure = error instanceof Error && "knownFailure" in error && error.knownFailure === true;
         await this.write({ ...record, state: knownFailure ? "failed" : "outcome_unknown", updatedAt: new Date().toISOString() });
-        throw error;
+        if (knownFailure) throw error;
+        throw new OperationError("outcome_unknown", uncertaintyWarning, { cause: error });
       }
     } finally { await rmdir(lock); }
   }
