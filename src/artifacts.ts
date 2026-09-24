@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, open, readFile, realpath, rename } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { lstat, mkdir, open, realpath, rename } from "node:fs/promises";
+import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import sharp from "sharp";
 import { z } from "zod";
 
@@ -46,6 +46,21 @@ export async function validatePng(bytes: Buffer): Promise<{ width: number; heigh
   if (bytes.length > MAX_IMAGE_BYTES || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
     throw new Error("Expected a bounded PNG image.");
   }
+  let position = 8;
+  let ended = false;
+  while (position + 12 <= bytes.length) {
+    const length = bytes.readUInt32BE(position);
+    if (length > bytes.length - position - 12) throw new Error("Truncated PNG chunk.");
+    const type = bytes.toString("ascii", position + 4, position + 8);
+    if (["acTL", "fcTL", "fdAT"].includes(type)) throw new Error("Animated PNG is unsupported.");
+    position += length + 12;
+    if (type === "IEND") {
+      if (length !== 0 || position !== bytes.length) throw new Error("Invalid PNG ending.");
+      ended = true;
+      break;
+    }
+  }
+  if (!ended) throw new Error("Missing PNG ending.");
   const image = sharp(bytes, { limitInputPixels: MAX_PIXELS, failOn: "warning" });
   const metadata = await image.metadata();
   if (metadata.format !== "png" || !metadata.width || !metadata.height ||
@@ -59,6 +74,7 @@ export async function validatePng(bytes: Buffer): Promise<{ width: number; heigh
 
 export async function readLocalImage(path: string, roots: readonly string[]): Promise<Buffer> {
   if (!isAbsolute(path)) throw new Error("Image input must be an absolute path.");
+  if (extname(path).toLowerCase() !== ".png") throw new Error("Image filename must use .png.");
   const canonical = await realpath(path);
   if (canonical !== resolve(path)) throw new Error("Symlinked image paths are not allowed.");
   const allowed = await Promise.all(roots.map((root) => realpath(root)));
@@ -66,23 +82,29 @@ export async function readLocalImage(path: string, roots: readonly string[]): Pr
     const rel = relative(root, canonical);
     return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
   })) throw new Error("Image input is outside approved roots.");
-  const file = await open(canonical, constants.O_RDONLY | constants.O_NOFOLLOW);
+  const result = await readRegularFile(canonical, MAX_IMAGE_BYTES);
+  await validatePng(result);
+  return result;
+}
+
+async function readRegularFile(path: string, limit: number): Promise<Buffer> {
+  const entry = await lstat(path);
+  if (!entry.isFile() || entry.size > limit) throw new Error("Input is not a bounded regular file.");
+  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = await file.stat();
-    if (!before.isFile() || before.size > MAX_IMAGE_BYTES) throw new Error("Input is not a bounded regular file.");
-    const buffer = Buffer.alloc(MAX_IMAGE_BYTES + 1);
+    if (!before.isFile() || before.size > limit) throw new Error("Input is not a bounded regular file.");
+    const buffer = Buffer.alloc(limit + 1);
     let offset = 0;
     while (offset < buffer.length) {
       const { bytesRead } = await file.read(buffer, offset, buffer.length - offset, offset);
       if (bytesRead === 0) break;
       offset += bytesRead;
     }
-    if (offset > MAX_IMAGE_BYTES) throw new Error("Input image is too large.");
+    if (offset > limit) throw new Error("Input is too large.");
     const after = await file.stat();
     if (before.size !== after.size || before.mtimeMs !== after.mtimeMs) throw new Error("Input changed while reading.");
-    const result = buffer.subarray(0, offset);
-    await validatePng(result);
-    return result;
+    return buffer.subarray(0, offset);
   } finally {
     await file.close();
   }
@@ -132,10 +154,7 @@ export class ArtifactStore {
     const folder = join(this.root, id);
     if (await realpath(folder) !== folder) throw new Error("Symlinked artifact directory.");
     const manifestPath = join(folder, "manifest.json");
-    if ((await lstat(manifestPath)).isSymbolicLink() || (await lstat(manifestPath)).size > 16_384) {
-      throw new Error("Invalid artifact manifest.");
-    }
-    const manifest = manifestSchema.parse(JSON.parse(await readFile(manifestPath, "utf8")));
+    const manifest = manifestSchema.parse(JSON.parse((await readRegularFile(manifestPath, 16_384)).toString("utf8")));
     if (manifest.id !== id) throw new Error("Artifact identity mismatch.");
     const path = join(folder, "image.png");
     const bytes = await readLocalImage(path, [this.root]);

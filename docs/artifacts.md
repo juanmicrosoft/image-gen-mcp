@@ -15,8 +15,11 @@ The decoder verifies PNG signature, format, full decode, byte/pixel/dimension
 limits, a single frame and no rotated EXIF orientation. Requested output
 dimensions must match decoded bytes. PNG metadata is preserved in the original
 bytes; do not assume that a reference/provider image is stripped of metadata.
-Local references must be regular PNG files in approved roots without symlinked
-paths. Artifact retrieval rechecks hashes and dimensions; mutation is an error.
+Local references must be regular `.png` files in approved roots without symlinked
+paths. Bounded PNG chunk parsing rejects APNG animation chunks independently of
+decoder metadata. Images and manifests reject special files before opening and
+use nonblocking, no-follow descriptor checks as defense in depth. Artifact
+retrieval rechecks hashes and dimensions; mutation is an error.
 
 An exclusive `.claim-UUID` prevents ID reuse. Saving writes and syncs both files
 in a private `.pending-UUID` directory, syncs directory ancestors, then renames
