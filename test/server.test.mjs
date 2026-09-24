@@ -14,6 +14,9 @@ test("built executable initializes, lists tools, rejects unknown calls and shuts
     await client.connect(transport);
     assert.equal(client.getServerVersion().name, "image-gen-mcp");
     assert.ok(Array.isArray((await client.listTools()).tools));
+    assert.ok((await client.listTools()).tools.some((tool) => tool.name === "get_capabilities"));
+    const result = await client.callTool({ name: "get_capabilities", arguments: {} });
+    assert.equal(result.structuredContent.checks.inference.status, "unverified");
     await client.ping();
     await assert.rejects(client.callTool({ name: "does_not_exist", arguments: {} }), /Unknown tool/);
   } finally {

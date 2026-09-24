@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createServer } from "./server.js";
+import { capabilitiesTool } from "./capabilities.js";
 
-const server = createServer();
+const server = createServer([capabilitiesTool()]);
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     void server.close().catch(() => {
