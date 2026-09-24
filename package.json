@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && node --import ./test/fixtures/offline-fetch.mjs --test test/*.test.mjs",
     "prepack": "npm run build"
   },
   "dependencies": {
