@@ -14,6 +14,15 @@ the upstream outcome is understood; cancellation does not prove nonbilling.
 SDK/HTTP retries must be disabled by every live runner. The helper bounds request
 count, not money or server-side execution time.
 
+Before submission the helper syncs the reservation file, renames it, and syncs
+the ledger directory and every ancestor (including newly created directories).
+This relies on local filesystem/OS support for directory `fsync` and honest
+storage flush semantics. Unsupported directory sync fails closed before any
+callback. Do not claim power-loss safety on network filesystems or hardware that
+does not honor flushes. The local macOS filesystem was exercised; other platforms
+require their own validation. A third-argument barrier is an offline test seam;
+live runners must use the production default.
+
 ## Pricing evidence (2026-09-24)
 
 The official [Azure Retail Prices API](https://prices.azure.com/api/retail/prices)

@@ -1,7 +1,21 @@
 import { mkdir, open, readFile, rename, rmdir } from "node:fs/promises";
 import { dirname, isAbsolute } from "node:path";
 
-export function liveBudget(env, ledgerPath) {
+async function syncDirectoryTree(directory) {
+  for (;;) {
+    const handle = await open(directory, "r");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+}
+
+export function liveBudget(env, ledgerPath, durabilityBarrier = syncDirectoryTree) {
   if (env.IMAGE_GEN_LIVE !== "true") {
     throw new Error("Billable tests require IMAGE_GEN_LIVE=true.");
   }
@@ -48,6 +62,7 @@ export function liveBudget(env, ledgerPath) {
           await file.close();
         }
         await rename(temporary, ledgerPath);
+        await durabilityBarrier(dirname(ledgerPath));
         // Consume the request before submission, including failures and uncertain outcomes.
         return await submit();
       } finally {

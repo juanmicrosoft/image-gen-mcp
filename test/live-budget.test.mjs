@@ -47,3 +47,25 @@ test("a ledger permits only one concurrent live request", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("submission follows the directory durability barrier and its failure fails closed", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "image-budget-"));
+  try {
+    const env = { IMAGE_GEN_LIVE: "true", IMAGE_GEN_MAX_REQUESTS: "2" };
+    const events = [];
+    const budget = liveBudget(env, join(directory, "nested", "budget.json"), async (parent) => {
+      assert.equal(parent, join(directory, "nested"));
+      events.push("barrier");
+    });
+    await budget.run(async () => events.push("submit"));
+    assert.deepEqual(events, ["barrier", "submit"]);
+    const failing = liveBudget(env, join(directory, "failed.json"), async () => {
+      throw new Error("directory sync unsupported");
+    });
+    let calls = 0;
+    await assert.rejects(failing.run(async () => { calls++; }), /sync unsupported/);
+    assert.equal(calls, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
