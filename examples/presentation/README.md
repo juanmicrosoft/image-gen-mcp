@@ -11,6 +11,7 @@ From a development checkout:
 npm ci
 npm run build
 npm ci --prefix examples/presentation
+npm test --prefix examples/presentation
 node examples/presentation/build.mjs \
   --hero /absolute/artifacts/A/image.png \
   --editorial /absolute/artifacts/C/image.png \
@@ -20,8 +21,11 @@ node examples/presentation/build.mjs \
 
 Use real returned artifact paths, not these placeholders. All three inputs must
 be fully decodable native 1536x864 PNGs. The output is exclusive: an existing
-file is not overwritten. Georgia and Trebuchet MS are requested; another viewer
-may substitute fonts, so render/inspect in the intended environment.
+file is not overwritten. Linux Libertine G and Linux Biolinum G are requested;
+they were present in the tested LibreOffice renderer. Install those fonts or
+choose an available serif/sans pair before rendering elsewhere. Fonts are not
+embedded or distributed by this example; inspect the intended viewer for
+substitution and changed wrapping.
 
 In the proven local Copilot CLI workflow, ask Copilot to:
 
