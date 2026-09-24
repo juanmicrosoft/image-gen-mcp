@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "image-gen": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/image-gen-mcp/dist/cli.js"],
+      "env": {
+        "AZURE_OPENAI_ENDPOINT": "https://YOUR-ACCOUNT.openai.azure.com",
+        "AZURE_OPENAI_IMAGE_DEPLOYMENT": "sunburst",
+        "IMAGE_GEN_AUTH": "azure-cli",
+        "IMAGE_GEN_OUTPUT_DIR": "/ABSOLUTE/PRIVATE/OUTPUT/DIRECTORY"
+      }
+    }
+  }
+}
