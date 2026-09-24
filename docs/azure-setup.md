@@ -12,6 +12,8 @@ omits RBAC changes and does not claim CLI inference is enabled. It still require
 authorized resource creation and, separately, key access for inference. No
 automatic fallback occurs. Ask an administrator to provision the least-privilege
 role before claiming keyless runtime support.
+See the [authentication evidence and administrator handoff](evidence/authentication.md)
+for the observed denial, exact candidate role and remaining validation gates.
 
 Read [cost/geography guidance](live-testing.md) first. This template deliberately
 uses a public-network, key-enabled `AIServices` S0 account and a pinned Sunburst
