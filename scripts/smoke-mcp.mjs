@@ -7,6 +7,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { syncDirectories } from "../dist/artifacts.js";
 import { liveBudget } from "./lib/live-budget.mjs";
+import { smokeSource } from "./lib/smoke-source.mjs";
 
 const { values } = parseArgs({ options: {
   ledger: { type: "string" }, record: { type: "string" }, prompt: { type: "string" },
@@ -17,8 +18,8 @@ try {
   if (!values.ledger || !isAbsolute(values.ledger) || !values.record || !isAbsolute(values.record) || !values.prompt) {
     throw new Error("Provide absolute --ledger/--record paths and a --prompt.");
   }
+  const { tool, args: sourceArgs } = smokeSource(values["source-artifact"]);
   const budget = liveBudget(process.env, values.ledger);
-  const tool = values["source-artifact"] ? "edit_image" : "generate_image";
   const operationId = randomUUID();
   await mkdir(dirname(values.record), { recursive: true, mode: 0o700 });
   const attempt = await open(`${values.record}.attempt.json`, "wx", 0o600);
@@ -37,7 +38,7 @@ try {
   const result = await budget.run(() => client.callTool({
     name: tool, arguments: {
       operation_id: operationId, prompt: values.prompt,
-      ...(values["source-artifact"] ? { source_artifact_id: values["source-artifact"] } : {}),
+      ...sourceArgs,
     },
   }, undefined, { timeout: 240_000 }));
   const evidence = {
