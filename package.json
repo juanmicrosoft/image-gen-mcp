@@ -10,7 +10,21 @@
   "files": [
     "dist",
     "README.md",
-    "assets/image-gen-mcp.png"
+    "assets/image-gen-mcp.png",
+    "docs/*.md",
+    "docs/evidence/*.md",
+    "evaluation/briefs.json",
+    "examples/copilot-cli.mcp.json",
+    "examples/vscode.mcp.json",
+    "examples/presentation/README.md",
+    "examples/presentation/build.mjs",
+    "examples/presentation/test.mjs",
+    "examples/presentation/package.json",
+    "examples/presentation/package-lock.json",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "AGENTS.md",
+    "scripts/configure-client.mjs"
   ],
   "engines": {
     "node": ">=22.22.0"
@@ -20,10 +34,11 @@
     "url": "https://github.com/juanmicrosoft/image-gen-mcp.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --import ./test/fixtures/offline-fetch.mjs --test test/*.test.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
     "@azure/identity": "4.13.3",
