@@ -67,7 +67,7 @@ test("MCP validates options before submission, preserves exact request and repla
   assert.deepEqual((await client.callTool({ name: "generate_image", arguments: args })).structuredContent, result.structuredContent);
   assert.equal(calls, 1);
   const restarted = imageTools(load, async () => { throw new Error("Must not submit again"); });
-  const recovered = await restarted[1].invoke({ operation_id: args.operation_id }, signal);
+  const recovered = await restarted.find((tool) => tool.definition.name === "get_operation").invoke({ operation_id: args.operation_id }, signal);
   assert.equal(recovered.structuredContent.state, "succeeded");
   assert.deepEqual(recovered.structuredContent.usage, { input_tokens: 10, output_tokens: 20, total_tokens: 30 });
   assert.ok(!JSON.stringify(recovered).includes(args.prompt));

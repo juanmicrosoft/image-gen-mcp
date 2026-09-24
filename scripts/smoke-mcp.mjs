@@ -10,6 +10,7 @@ import { liveBudget } from "./lib/live-budget.mjs";
 
 const { values } = parseArgs({ options: {
   ledger: { type: "string" }, record: { type: "string" }, prompt: { type: "string" },
+  "source-artifact": { type: "string" },
 } });
 let client;
 try {
@@ -17,11 +18,12 @@ try {
     throw new Error("Provide absolute --ledger/--record paths and a --prompt.");
   }
   const budget = liveBudget(process.env, values.ledger);
+  const tool = values["source-artifact"] ? "edit_image" : "generate_image";
   const operationId = randomUUID();
   await mkdir(dirname(values.record), { recursive: true, mode: 0o700 });
   const attempt = await open(`${values.record}.attempt.json`, "wx", 0o600);
   try {
-    await attempt.writeFile(JSON.stringify({ operationId, startedAt: new Date().toISOString(), tool: "generate_image" }));
+    await attempt.writeFile(JSON.stringify({ operationId, startedAt: new Date().toISOString(), tool }));
     await attempt.sync();
   } finally { await attempt.close(); }
   await syncDirectories(dirname(values.record));
@@ -33,7 +35,10 @@ try {
   await client.connect(transport);
   const started = Date.now();
   const result = await budget.run(() => client.callTool({
-    name: "generate_image", arguments: { operation_id: operationId, prompt: values.prompt },
+    name: tool, arguments: {
+      operation_id: operationId, prompt: values.prompt,
+      ...(values["source-artifact"] ? { source_artifact_id: values["source-artifact"] } : {}),
+    },
   }, undefined, { timeout: 240_000 }));
   const evidence = {
     recordedAt: new Date().toISOString(), elapsedMs: Date.now() - started,

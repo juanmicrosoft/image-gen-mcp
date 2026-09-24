@@ -44,8 +44,9 @@ async function readResponse(response: Response): Promise<unknown> {
   }
 }
 
-export async function generate(
+async function requestImage(
   config: Configuration, input: ImageRequest, signal: AbortSignal, fetcher: typeof fetch = fetch,
+  source?: Buffer,
 ) {
   const deadline = AbortSignal.any([signal, AbortSignal.timeout(180_000)]);
   let headers: Record<string, string>;
@@ -58,10 +59,19 @@ export async function generate(
   }
   let response: Response;
   try {
-    response = await fetcher(`${config.endpoint}openai/deployments/${encodeURIComponent(config.deployment)}/images/generations?api-version=${apiVersion}`, {
+    const fields = { ...input, n: 1, output_format: "png" };
+    let body: string | FormData;
+    if (source) {
+      body = new FormData();
+      for (const [key, value] of Object.entries(fields)) body.set(key, String(value));
+      body.set("image", new Blob([new Uint8Array(source)], { type: "image/png" }), "reference.png");
+    } else {
+      body = JSON.stringify(fields);
+      headers["content-type"] = "application/json";
+    }
+    response = await fetcher(`${config.endpoint}openai/deployments/${encodeURIComponent(config.deployment)}/images/${source ? "edits" : "generations"}?api-version=${apiVersion}`, {
       method: "POST", redirect: "error", signal: deadline,
-      headers: { ...headers, "content-type": "application/json" },
-      body: JSON.stringify({ ...input, n: 1, output_format: "png" }),
+      headers, body,
     });
     const raw = await readResponse(response);
     const header = response.headers.get("x-ms-request-id") ?? response.headers.get("x-request-id");
@@ -92,4 +102,12 @@ export async function generate(
   } catch (error) {
     throw normalizeError(error);
   }
+}
+
+export function generate(config: Configuration, input: ImageRequest, signal: AbortSignal, fetcher: typeof fetch = fetch) {
+  return requestImage(config, input, signal, fetcher);
+}
+
+export function edit(config: Configuration, input: ImageRequest, source: Buffer, signal: AbortSignal, fetcher: typeof fetch = fetch) {
+  return requestImage(config, input, signal, fetcher, source);
 }

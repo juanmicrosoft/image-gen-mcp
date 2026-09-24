@@ -6,7 +6,7 @@ import { qualities, sizes } from "./capabilities.js";
 import { ConfigurationError, loadConfiguration } from "./config.js";
 import { errorResult, ImageError, normalizeError } from "./errors.js";
 import { OperationError, OperationStore } from "./operations.js";
-import { generate } from "./provider.js";
+import { edit, generate } from "./provider.js";
 import type { ToolHandler } from "./server.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
@@ -17,6 +17,10 @@ const generateSchema = z.object({
   quality: z.enum(qualities).default("high"),
 }).strict();
 const statusSchema = z.object({ operation_id: z.string().uuid() }).strict();
+const editSchema = generateSchema.extend({
+  source_artifact_id: z.string().uuid().optional(),
+  source_path: z.string().min(1).optional(),
+}).refine((value) => (value.source_artifact_id !== undefined) !== (value.source_path !== undefined));
 
 export async function artifactResult(artifact: Artifact, operationId: string, preview: boolean): Promise<CallToolResult> {
   const content: CallToolResult["content"] = [];
@@ -89,6 +93,60 @@ export function imageTools(load = loadConfiguration, fetcher: typeof fetch = fet
             return artifacts.save(result.bytes, {
               deployment: config.deployment, model: config.model, modelEvidence: "configured",
               size: request.size, quality: request.quality, usage: result.usage,
+              ...(result.requestId ? { requestId: result.requestId } : {}),
+            }, artifactId);
+          });
+          return await artifactResult(artifact, operation_id, config.preview);
+        } catch (error) { return failure(error, args); }
+      },
+    },
+    {
+      definition: {
+        name: "edit_image",
+        description: "Create one new billable image from exactly one explicit source_artifact_id or approved absolute PNG source_path. Provide a self-contained prompt and new operation UUID. The source remains unchanged; masks, URLs and multiple references are unsupported.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            operation_id: { type: "string", format: "uuid" },
+            prompt: { type: "string", minLength: 1, maxLength: 32_000 },
+            size: { type: "string", enum: [...sizes], default: "1536x864" },
+            quality: { type: "string", enum: [...qualities], default: "high" },
+            source_artifact_id: { type: "string", format: "uuid" },
+            source_path: { type: "string", description: "Absolute .png path inside an explicitly configured input root." },
+          },
+          required: ["operation_id", "prompt"], additionalProperties: false,
+          oneOf: [{ required: ["source_artifact_id"] }, { required: ["source_path"] }],
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      },
+      async invoke(args, signal) {
+        try {
+          const input = editSchema.parse(args);
+          const { config, artifacts, operations } = await getRuntime();
+          signal.throwIfAborted();
+          let source: Buffer;
+          try {
+            if (input.source_artifact_id) {
+              const parent = await artifacts.get(input.source_artifact_id);
+              source = await readLocalImage(parent.path, [artifacts.root]);
+              if (sha256(source) !== parent.sha256) throw new Error("Source changed.");
+            } else {
+              source = await readLocalImage(input.source_path!, config.inputRoots);
+            }
+          } catch {
+            throw new ImageError("invalid_input", "Source PNG is missing, modified, invalid or outside approved input roots. No alternate source was selected.", true);
+          }
+          const sourceHash = sha256(source);
+          const { operation_id, source_artifact_id, source_path, ...request } = input;
+          const artifact = await operations.run(operation_id, {
+            ...request, tool: "edit_image", endpoint: config.endpoint, deployment: config.deployment, model: config.model,
+            source: source_artifact_id ?? source_path!, sourceHash,
+          }, async (artifactId) => {
+            const result = await edit(config, request, source, signal, fetcher);
+            return artifacts.save(result.bytes, {
+              deployment: config.deployment, model: config.model, modelEvidence: "configured",
+              size: request.size, quality: request.quality, usage: result.usage, sourceHash,
+              ...(source_artifact_id ? { sourceArtifactId: source_artifact_id } : {}),
               ...(result.requestId ? { requestId: result.requestId } : {}),
             }, artifactId);
           });
