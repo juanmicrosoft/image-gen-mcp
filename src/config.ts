@@ -62,7 +62,7 @@ export function loadConfiguration(
   if (env.AZURE_TENANT_ID && !z.string().uuid().safeParse(env.AZURE_TENANT_ID).success) {
     throw new ConfigurationError("AZURE_TENANT_ID must be a tenant UUID.");
   }
-  if (env.IMAGE_GEN_PREVIEW && !["true", "false"].includes(env.IMAGE_GEN_PREVIEW)) {
+  if (env.IMAGE_GEN_PREVIEW !== undefined && !["true", "false"].includes(env.IMAGE_GEN_PREVIEW)) {
     throw new ConfigurationError("IMAGE_GEN_PREVIEW must be true or false.");
   }
   const credential = mode === "azure-cli" ? cliFactory(env.AZURE_TENANT_ID) : null;

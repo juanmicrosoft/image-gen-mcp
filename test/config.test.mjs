@@ -35,7 +35,14 @@ test("unsafe endpoints, ambiguous credentials and missing paths are rejected", (
   }
   for (const patch of [{ IMAGE_GEN_OUTPUT_DIR: "relative" }, { AZURE_OPENAI_API_KEY: "secret" },
     { IMAGE_GEN_AUTH: "api-key" }, { IMAGE_GEN_AUTH: "automatic" }, { IMAGE_GEN_INPUT_DIRS: '["relative"]' },
-    { IMAGE_GEN_PREVIEW: "yes" }, { AZURE_OPENAI_IMAGE_MODEL: "other" }]) {
+    { IMAGE_GEN_PREVIEW: "yes" }, { IMAGE_GEN_PREVIEW: "" }, { AZURE_OPENAI_IMAGE_MODEL: "other" }]) {
     assert.throws(() => loadConfiguration({ ...base, ...patch }));
   }
+});
+
+test("only absent preview configuration defaults on", () => {
+  const factory = () => ({ async getToken() { return { token: "unused" }; } });
+  assert.equal(loadConfiguration(base, factory).preview, true);
+  assert.equal(loadConfiguration({ ...base, IMAGE_GEN_PREVIEW: "true" }, factory).preview, true);
+  assert.equal(loadConfiguration({ ...base, IMAGE_GEN_PREVIEW: "false" }, factory).preview, false);
 });
