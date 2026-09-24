@@ -17,6 +17,16 @@ function az(...args) {
   return output.trim() ? JSON.parse(output) : null;
 }
 
+function assertOwnedResources(resources, state) {
+  if (resources.some((resource) =>
+    resource.id.toLowerCase() !== state.resourceId.toLowerCase() ||
+    resource.type?.toLowerCase() !== "microsoft.cognitiveservices/accounts" ||
+    resource.tags?.project !== "image-gen-mcp" ||
+    resource.tags?.ownerToken !== state.ownerToken)) {
+    throw new Error("Unowned or unexpected resource in group; refusing deployment/deletion.");
+  }
+}
+
 try {
   if (!values.state || !isAbsolute(values.state)) throw new Error("--state must be an absolute local JSON path.");
   let state;
@@ -38,9 +48,7 @@ try {
       throw new Error("Ownership tags differ; refusing cleanup.");
     }
     const resources = az("resource", "list", "--resource-group", state.group, "--subscription", state.subscription);
-    if (resources.some((resource) => resource.id.toLowerCase() !== state.resourceId.toLowerCase())) {
-      throw new Error("Unexpected resources in group; refusing cleanup. Inspect explicitly.");
-    }
+    assertOwnedResources(resources, state);
     az("group", "delete", "--name", state.group, "--subscription", state.subscription, "--yes");
     if (az("group", "exists", "--name", state.group, "--subscription", state.subscription)) {
       throw new Error("Deletion has not completed.");
@@ -73,6 +81,7 @@ try {
       if (!state || group.tags?.ownerToken !== state.ownerToken || group.tags?.project !== "image-gen-mcp") {
         throw new Error("Existing group is not owned by this state; refusing adoption.");
       }
+      assertOwnedResources(az("resource", "list", "--resource-group", state.group, "--subscription", subscription), state);
     } else if (!quota || quota.limit - quota.currentValue < 1) {
       throw new Error("Insufficient reported quota; request access/capacity rather than changing model or region.");
     }
