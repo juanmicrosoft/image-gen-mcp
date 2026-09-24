@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "size": "1536x864",
+  "quality": "high",
+  "preRunRubric": "https://github.com/juanmicrosoft/image-gen-mcp/issues/25#issuecomment-5818885330",
+  "hardGates": ["one PNG", "full decode", "1536x864", "unchanged edit source"],
+  "visualScale": {
+    "1": "Requirement absent or serious defect",
+    "2": "Major deviation",
+    "3": "Usable with visible limitations",
+    "4": "Strong adherence with minor deviations",
+    "5": "Very strong adherence in this inspected output"
+  },
+  "minimumPerDimension": 3,
+  "dimensions": ["subject/composition", "negative space", "palette", "no unintended text/artifacts"],
+  "editDimension": "semantic preservation of untouched objects/layout",
+  "cases": {
+    "generation": "Editorial illustration for a technology presentation: a luminous cyan observatory above layered deep teal mountains, on the right two thirds. Dark navy empty negative space in the left third for editable slide text. Refined geometric shapes, subtle atmospheric light, no lettering or logos.",
+    "edit": "Keep the composition and mountains unchanged. Change the sky to a warm coral sunrise. Leave the left third dark and uncluttered for editable slide text. No lettering.",
+    "editorial": "Editorial geometric coral and cyan lens visualization on the right two thirds, dark navy uncluttered negative space on the left third for editable presentation text. Refined layered optical forms and subtle light. No lettering, logos or text."
+  }
+}
