@@ -48,7 +48,10 @@ export function normalizeError(error: unknown): ImageError {
   if (error instanceof Error && "code" in error) {
     if (["busy", "conflict", "outcome_unknown", "previous_failure"].includes(String(error.code))) {
       const schema = z.enum(["busy", "conflict", "outcome_unknown", "previous_failure"]);
-      return new ImageError(schema.parse(error.code), "Operation cannot be submitted. Inspect its stored state and arguments; no automatic resubmission.");
+      const code = schema.parse(error.code);
+      return new ImageError(code, code === "outcome_unknown"
+        ? "Upstream processing may continue and charges may apply. Inspect the stored operation; automatic resubmission is unsafe."
+        : "Operation cannot be submitted. Inspect its stored state and arguments; no automatic resubmission.");
     }
     if (["ENOSPC", "EACCES", "EPERM", "EIO", "EROFS", "ENOENT", "EEXIST"].includes(String(error.code))) {
       return new ImageError("persistence", "Local file access or persistence failed. A provider request may already have completed; inspect the operation/artifacts.");

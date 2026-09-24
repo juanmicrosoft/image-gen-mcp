@@ -31,6 +31,8 @@ test("untrusted exception content and unsafe request IDs never escape", () => {
   const cancelled = Object.assign(new Error(secret), { name: "AbortError" });
   assert.equal(normalizeError(cancelled).code, "timeout");
   assert.equal(normalizeError(Object.assign(new Error(secret), { code: "ENOSPC" })).code, "persistence");
+  const unknown = errorResult(Object.assign(new Error(secret), { code: "outcome_unknown" }));
+  assert.match(unknown.structuredContent.error.message, /processing may continue and charges may apply/);
 });
 
 test("usage is unknown when missing, never invented or made into zero", () => {
