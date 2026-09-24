@@ -7,21 +7,24 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { syncDirectories } from "../dist/artifacts.js";
 import { liveBudget } from "./lib/live-budget.mjs";
+import { smokeSource } from "./lib/smoke-source.mjs";
 
 const { values } = parseArgs({ options: {
   ledger: { type: "string" }, record: { type: "string" }, prompt: { type: "string" },
+  "source-artifact": { type: "string" },
 } });
 let client;
 try {
   if (!values.ledger || !isAbsolute(values.ledger) || !values.record || !isAbsolute(values.record) || !values.prompt) {
     throw new Error("Provide absolute --ledger/--record paths and a --prompt.");
   }
+  const { tool, args: sourceArgs } = smokeSource(values["source-artifact"]);
   const budget = liveBudget(process.env, values.ledger);
   const operationId = randomUUID();
   await mkdir(dirname(values.record), { recursive: true, mode: 0o700 });
   const attempt = await open(`${values.record}.attempt.json`, "wx", 0o600);
   try {
-    await attempt.writeFile(JSON.stringify({ operationId, startedAt: new Date().toISOString(), tool: "generate_image" }));
+    await attempt.writeFile(JSON.stringify({ operationId, startedAt: new Date().toISOString(), tool }));
     await attempt.sync();
   } finally { await attempt.close(); }
   await syncDirectories(dirname(values.record));
@@ -33,7 +36,10 @@ try {
   await client.connect(transport);
   const started = Date.now();
   const result = await budget.run(() => client.callTool({
-    name: "generate_image", arguments: { operation_id: operationId, prompt: values.prompt },
+    name: tool, arguments: {
+      operation_id: operationId, prompt: values.prompt,
+      ...sourceArgs,
+    },
   }, undefined, { timeout: 240_000 }));
   const evidence = {
     recordedAt: new Date().toISOString(), elapsedMs: Date.now() - started,
