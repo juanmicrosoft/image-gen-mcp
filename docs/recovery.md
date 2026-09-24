@@ -24,7 +24,9 @@ apply. Missing or corrupted completed artifacts are errors, not regeneration
 triggers. This is not an exactly-once guarantee from Azure; it is conservative
 local no-automatic-resubmission behavior.
 
-The MCP `get_operation` integration and measured client-deadline acceptance are
-tracked with #16/#21. Unit tests cover replay, conflicts, uncertain failures,
-post-save interruption/restart and concurrent exclusion. Process-kill injection
-is tracked in #24.
+The MCP `get_operation` tool is implemented. See
+[actual CLI deadline evidence](evidence/copilot-cli.md) and
+[process-kill/fault evidence](evidence/reliability.md); VS Code remains unverified.
+Tests cover replay, conflicts, uncertain failures, post-save interruption/restart
+and concurrent exclusion. [Operations guidance](operations.md) explains privacy,
+retention and explicit cleanup without bypassing uncertain outcomes.
