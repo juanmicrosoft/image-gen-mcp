@@ -3,7 +3,7 @@
 ## Status — 2026-09-24
 
 `0.1.0` is a source/tarball candidate, **not a verified published npm version**.
-`npm whoami` returned `ENEEDAUTH`; subsequent registry reads failed with
+`npm whoami` returned `ENEEDAUTH`; subsequent local registry reads failed with
 connection/TLS errors. Neither scope ownership nor name availability is proved.
 Issue #30 stays open pending registry authorization and installation evidence.
 
@@ -19,8 +19,12 @@ example test and real tarball installation/discovery on Ubuntu/macOS with Node
 22.22.2. It checks MCP/package version agreement and retains per-run tarballs
 and SHA-256/inventory evidence as workflow artifacts for 14 days.
 
-These are workflow definitions until the linked run passes, not claims of a
-completed run. Jobs have read-only repository permission, no Azure credentials,
+[Run 36053657929](https://github.com/juanmicrosoft/image-gen-mcp/actions/runs/36053657929)
+passed every step on both hosted platforms for candidate
+`651d75ae58aa62244bd44e47dbaaddad89b5a6bc`, including normal-mode registry
+dependency installation. This is distinct from the local warm-cache check.
+Consult the PR/current commit checks for subsequent candidates; an earlier green
+run is not proof for a different commit. Jobs have read-only repository permission, no Azure credentials,
 `IMAGE_GEN_LIVE=false`, no publishing step and no image-generation requests.
 There is deliberately no automatic live or publishing workflow. npm access for
 dependencies/audit is expected; "offline" refers to image-provider tests, not a

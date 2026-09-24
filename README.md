@@ -70,6 +70,8 @@ was free; retain the operation ID and inspect it before explicitly submitting ag
 For contributors, `npm test` is offline and requires no Azure credentials.
 See [testing](docs/testing.md), [CONTRIBUTING.md](CONTRIBUTING.md) and
 [AGENTS.md](AGENTS.md) for the individual-PR, independent-review and evidence rules.
+The [candidate changelog](CHANGELOG.md) and [release evidence/gates](docs/release.md)
+separate passed offline/package CI from unresolved live-client and publication acceptance.
 
 The software and documentation are [MIT licensed](LICENSE). See
 [SECURITY.md](SECURITY.md). This license
