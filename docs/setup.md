@@ -53,31 +53,35 @@ Do not paste the key into a command, chat or committed JSON file.
 For CLI mode:
 
 ```sh
-node scripts/configure-client.mjs --output "$PWD/.local/copilot.mcp.json"
+node scripts/configure-client.mjs --output "$HOME/.config/image-gen-mcp/copilot.mcp.json"
 ```
 
 For API-key mode, the helper requires an explicit plaintext-storage acknowledgment:
 
 ```sh
-node scripts/configure-client.mjs --output "$PWD/.local/copilot.mcp.json" \
+node scripts/configure-client.mjs --output "$HOME/.config/image-gen-mcp/copilot.mcp.json" \
   --allow-plaintext-key
 unset AZURE_OPENAI_API_KEY
 ```
 
 The helper writes only selected runtime settings, uses an exclusive 0600 file
 and never overwrites existing client configuration or registers globally. The
-file contains the key in plaintext in key mode: protect it, do not commit it, and
-remove/rotate it according to your local secret policy. It does not copy GitHub
+file contains the key in plaintext in key mode: choose a private, untracked
+directory **outside the agent's workspace**, protect it, and remove/rotate it
+according to your local secret policy. File permissions and `.gitignore` do not
+isolate secrets from an agent/tool running as the same OS user; retain the host's
+path/tool approval boundaries. It does not copy GitHub
 tokens or unrelated environment variables. A different secret-manager launcher
 is possible, but is not claimed as tested here.
 
 ```sh
-copilot --additional-mcp-config "@$PWD/.local/copilot.mcp.json"
+copilot --additional-mcp-config "@$HOME/.config/image-gen-mcp/copilot.mcp.json"
 ```
 
 This session-local route avoids modifying the user's existing MCP configuration.
 For persistent registration, use `/mcp add` deliberately; merge settings rather
-than replacing an existing user file. See separate
+than replacing an existing user file. Restart the MCP server/client after
+changing environment settings. See separate
 [CLI and VS Code examples](clients.md). VS Code uses different JSON and remains
 unverified in this environment; shell exports may not reach GUI-launched clients.
 
@@ -104,3 +108,6 @@ implicitly create that developer budget or any Azure resources.
 For a new resource instead of an existing deployment, follow the separate
 [Bicep provisioning/cleanup guide](azure-setup.md). Provisioning/key retrieval
 privileges are not runtime prerequisites when the owner supplies configuration.
+
+See the [dated onboarding evidence](evidence/onboarding.md) for what was actually
+executed, the warm-cache limitation and the unresolved packed-edit observation.
