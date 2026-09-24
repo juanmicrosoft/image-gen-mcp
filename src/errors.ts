@@ -23,7 +23,7 @@ export class ImageError extends Error {
 
 export function providerError(status: number, providerCode: unknown, requestId?: string | null): ImageError {
   const code = typeof providerCode === "string" ? providerCode.toLowerCase() : "";
-  if (["contentfilter", "content_policy_violation", "responsibleaipolicyviolation"].includes(code)) {
+  if (["contentfilter", "content_filter", "content_policy_violation", "responsibleaipolicyviolation"].includes(code)) {
     return new ImageError("policy", "Azure rejected this content. No rewrite, fallback or retry was attempted.", true, requestId);
   }
   if (status === 403 || code === "permissiondenied") {
@@ -44,6 +44,15 @@ export function normalizeError(error: unknown): ImageError {
   if (error instanceof z.ZodError) return new ImageError("invalid_input", "Invalid tool arguments or configuration.", true);
   if (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name)) {
     return new ImageError("timeout", "Request interrupted. Azure may still be processing or billing it. Inspect the existing operation; do not resubmit automatically.");
+  }
+  const transportCodes = new Set(["ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN",
+    "ENETUNREACH", "EHOSTUNREACH", "ETIMEDOUT", "UND_ERR_SOCKET", "UND_ERR_CONNECT_TIMEOUT"]);
+  let cause: unknown = error;
+  for (let depth = 0; depth < 3 && typeof cause === "object" && cause !== null; depth++) {
+    if ("code" in cause && typeof cause.code === "string" && transportCodes.has(cause.code)) {
+      return new ImageError("network", "Network transport failed. Upstream processing and charges may still occur; inspect this operation before any explicit new submission.");
+    }
+    cause = "cause" in cause ? cause.cause : null;
   }
   if (error instanceof Error && "code" in error) {
     if (["busy", "conflict", "outcome_unknown", "previous_failure"].includes(String(error.code))) {

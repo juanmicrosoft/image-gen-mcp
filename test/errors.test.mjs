@@ -8,7 +8,7 @@ test("provider categories are explicit and never expose raw provider messages", 
     [401, "invalid_key", "authentication"], [401, "PermissionDenied", "permission"],
     [403, "", "permission"], [404, "", "deployment"], [429, "insufficient_quota", "quota"],
     [429, "RateLimitReached", "throttled"], [400, "contentFilter", "policy"],
-    [400, "invalid_value", "invalid_input"], [500, "", "service"],
+    [400, "content_filter", "policy"], [400, "invalid_value", "invalid_input"], [500, "", "service"],
   ]) {
     const result = errorResult(providerError(status, provider));
     assert.equal(result.isError, true);
@@ -33,6 +33,10 @@ test("untrusted exception content and unsafe request IDs never escape", () => {
   assert.equal(normalizeError(Object.assign(new Error(secret), { code: "ENOSPC" })).code, "persistence");
   const unknown = errorResult(Object.assign(new Error(secret), { code: "outcome_unknown" }));
   assert.match(unknown.structuredContent.error.message, /processing may continue and charges may apply/);
+  const transport = Object.assign(new Error(secret), { code: "ECONNRESET" });
+  assert.equal(normalizeError(transport).code, "network");
+  assert.equal(normalizeError(new TypeError(secret, { cause: transport })).code, "network");
+  assert.ok(!JSON.stringify(errorResult(new TypeError(secret, { cause: transport }))).includes(secret));
 });
 
 test("usage is unknown when missing, never invented or made into zero", () => {
