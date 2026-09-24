@@ -24,7 +24,7 @@ for (const path of files) {
   assert.ok(!/(^|\/)(?:node_modules|\.[^/]*)(?:\/|$)/.test(path), `Private/unexpected packed path: ${path}`);
   assert.ok(!/\.(?:pptx|pdf|tgz)$/.test(path), `Generated output in package: ${path}`);
   assert.ok(!path.endsWith(".png") || path === "assets/image-gen-mcp.png", `Unexpected image: ${path}`);
-  assert.ok(/^(?:dist\/|docs\/|examples\/|evaluation\/briefs\.json$|scripts\/configure-client\.mjs$|assets\/image-gen-mcp\.png$|package\.json$|README\.md$|LICENSE$|CONTRIBUTING\.md$|SECURITY\.md$|AGENTS\.md$)/.test(path), `Not in package allowlist: ${path}`);
+  assert.ok(/^(?:dist\/|docs\/|examples\/|evaluation\/briefs\.json$|scripts\/configure-client\.mjs$|assets\/image-gen-mcp\.png$|package\.json$|README\.md$|LICENSE$|CONTRIBUTING\.md$|SECURITY\.md$|CHANGELOG\.md$|AGENTS\.md$)/.test(path), `Not in package allowlist: ${path}`);
 }
 for (const expected of ["dist/cli.js", "docs/setup.md", "scripts/configure-client.mjs", "LICENSE", "examples/presentation/build.mjs"]) assert.ok(files.includes(expected));
 const tarball = join(out, packed.filename);
@@ -54,6 +54,7 @@ let stderr = "";
 transport.stderr?.on("data", (chunk) => { stderr += chunk; });
 try {
   await client.connect(transport);
+  assert.equal(client.getServerVersion()?.version, packed.version, "MCP and package versions must match.");
   assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(),
     ["edit_image", "generate_image", "get_capabilities", "get_operation"]);
   const result = await client.callTool({ name: "get_capabilities", arguments: {} });

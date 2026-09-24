@@ -22,6 +22,7 @@
     "examples/presentation/package-lock.json",
     "CONTRIBUTING.md",
     "SECURITY.md",
+    "CHANGELOG.md",
     "AGENTS.md",
     "scripts/configure-client.mjs"
   ],
