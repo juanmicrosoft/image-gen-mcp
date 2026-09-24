@@ -3,10 +3,21 @@
   "version": "0.1.0",
   "description": "Local MCP image generation and editing through your Azure deployment.",
   "type": "module",
-  "bin": { "image-gen-mcp": "dist/cli.js" },
-  "files": ["dist", "README.md", "assets/image-gen-mcp.png"],
-  "engines": { "node": ">=22.22.0" },
-  "repository": { "type": "git", "url": "https://github.com/juanmicrosoft/image-gen-mcp.git" },
+  "bin": {
+    "image-gen-mcp": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "assets/image-gen-mcp.png"
+  ],
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/juanmicrosoft/image-gen-mcp.git"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -15,6 +26,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
+    "sharp": "0.35.4",
     "zod": "4.6.5"
   },
   "devDependencies": {
