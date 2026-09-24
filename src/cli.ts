@@ -2,8 +2,9 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createServer } from "./server.js";
 import { capabilitiesTool } from "./capabilities.js";
+import { imageTools } from "./image-tools.js";
 
-const server = createServer([capabilitiesTool()]);
+const server = createServer([capabilitiesTool(), ...imageTools()]);
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     void server.close().catch(() => {
