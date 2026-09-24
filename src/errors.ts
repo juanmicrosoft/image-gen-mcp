@@ -84,7 +84,7 @@ export function errorResult(error: unknown): CallToolResult {
   };
 }
 
-const usageSchema = z.object({
+export const usageSchema = z.object({
   input_tokens: z.number().int().nonnegative().optional(),
   output_tokens: z.number().int().nonnegative().optional(),
   total_tokens: z.number().int().nonnegative().optional(),

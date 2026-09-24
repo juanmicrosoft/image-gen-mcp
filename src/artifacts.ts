@@ -4,6 +4,7 @@ import { lstat, mkdir, open, realpath, rename } from "node:fs/promises";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import sharp from "sharp";
 import { z } from "zod";
+import { usageSchema } from "./errors.js";
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const MAX_PIXELS = 8_294_400;
@@ -17,6 +18,7 @@ const metadataSchema = z.object({
   sourceArtifactId: identifier.optional(),
   sourceHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   requestId: z.string().regex(/^[\w.-]{1,128}$/).optional(),
+  usage: usageSchema.nullable().optional(),
 }).strict();
 export type ArtifactMetadata = z.infer<typeof metadataSchema>;
 const manifestSchema = z.object({
@@ -128,7 +130,7 @@ export class ArtifactStore {
     return new ArtifactStore(await realpath(root), persist);
   }
 
-  async save(bytes: Buffer, metadata: ArtifactMetadata, id = randomUUID()): Promise<Artifact> {
+  async save(bytes: Buffer, metadata: ArtifactMetadata, id: string = randomUUID()): Promise<Artifact> {
     identifier.parse(id);
     const validated = metadataSchema.parse(metadata);
     const { width, height } = await validatePng(bytes);
