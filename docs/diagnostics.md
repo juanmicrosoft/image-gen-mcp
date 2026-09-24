@@ -17,8 +17,8 @@ inspection can be performed separately using the commands in
 [Azure setup](azure-setup.md); those results are not inferred by this tool.
 A deployment alias does not identify its model.
 
-The reported sizes and qualities are the documented profile's deliberately
-restricted v1 subset, not observed deployment capabilities. Only high-quality
+The reported size and quality are deliberately restricted to **1536x864/high**
+in v1. Other documented model options are not yet enabled. High-quality
 1536x864 generation and editing with API-key auth have [live evidence](evidence/azure-contract.md).
 These are repository test observations, **not** evidence about the caller's
 deployment. Configuration success does not test filesystem access, reachability

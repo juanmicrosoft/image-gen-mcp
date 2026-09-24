@@ -3,8 +3,8 @@ import { ConfigurationError, loadConfiguration, type Configuration } from "./con
 import { errorResult } from "./errors.js";
 import type { ToolHandler } from "./server.js";
 
-export const sizes = ["1024x1024", "1536x1024", "1024x1536", "1536x864"] as const;
-export const qualities = ["low", "medium", "high"] as const;
+export const sizes = ["1536x864"] as const;
+export const qualities = ["high"] as const;
 export const apiVersion = "2025-04-01-preview";
 const argsSchema = z.object({ check_credentials: z.boolean().default(false) }).strict();
 type Check = { status: "passed" | "failed" | "unverified"; detail: string };

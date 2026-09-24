@@ -20,6 +20,8 @@ test("diagnostics distinguish configured profile from unknown deployment/inferen
   assert.equal(result.isError, false);
   assert.equal(result.structuredContent.model.deployed, null);
   assert.equal(result.structuredContent.model.observed, null);
+  assert.deepEqual(result.structuredContent.profile.sizes, ["1536x864"]);
+  assert.deepEqual(result.structuredContent.profile.qualities, ["high"]);
   assert.equal(result.structuredContent.checks.managementMetadata.status, "unverified");
   assert.equal(result.structuredContent.checks.inference.status, "unverified");
   const checked = await tool.invoke({ check_credentials: true }, signal);
