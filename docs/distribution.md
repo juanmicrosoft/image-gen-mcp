@@ -17,12 +17,17 @@ the local npm cache, explicitly add `--offline`. This is a **warm-cache** check,
 not proof that a new machine can download dependencies offline.
 
 The verifier cleans generated `dist`, builds, packs with an explicit allowlist,
-rejects private/dotfiles, nested dependencies and generated decks/images,
+restricts documentation to Markdown in the documented directories, rejects
+unexpected paths, dotfiles, nested dependencies and generated decks/images,
 installs the tarball outside the checkout, verifies executable permissions,
 initializes the actual installed bin and discovers all four tools without Azure
 credentials. It also checks relative Markdown links in the installed package.
 It retains the tarball and a private `evidence.json` containing paths/checksum.
 The temporary installed prefix is retained for optional further checks.
+These are filename/inventory checks, not credential-content inspection: review
+the contents of permitted source, Markdown and placeholder configuration files
+before publishing. The regression includes a synthetic private JSON under
+`docs/` and proves that actual npm packing excludes it.
 
 Runtime dependencies include Azure Identity, the MCP SDK, Zod and Sharp.
 PptxGenJS remains only in the standalone example manifest; its installed
