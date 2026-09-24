@@ -4,19 +4,74 @@
 
 # image-gen-mcp
 
-A planned local Model Context Protocol (MCP) server for generating and editing
-images through your own Azure Foundry deployment, for use with GitHub Copilot
-and presentation workflows.
+A local Model Context Protocol (MCP) server for generating and editing images
+through your own Azure Foundry deployment, with GitHub Copilot and editable
+presentation workflows.
 
-**Status:** An initial MCP scaffold is implemented; image tools are not yet
-available as a verified release. Implementation, Azure feasibility, testing,
-documentation, and release work are tracked in
-[Milestone 1](https://github.com/juanmicrosoft/image-gen-mcp/milestone/1).
+**Status: source-build preview, not a published npm release.** The implemented
+tools have [real Azure evidence](docs/evidence/azure-contract.md),
+[actual Copilot CLI evidence](docs/evidence/copilot-cli.md) and a
+[rendered presentation example](docs/evidence/presentation.md).
+The verified client path is local macOS / Node 22.22.2 / Copilot CLI 1.0.79 /
+explicit API-key authentication. CLI-token inference, VS Code and npm publishing
+retain [open gates](https://github.com/juanmicrosoft/image-gen-mcp/milestone/1).
 
-See [AGENTS.md](AGENTS.md) for the repository's issue, pull request, adversarial
-review, and evidence requirements.
+The configured model profile is `gpt-image-2.5-sunburst`. V1 deliberately enables
+only the live-verified **1536x864, high-quality PNG** combination: one image,
+one concurrent submission, no automatic retries, prompt rewrites or model
+fallback. No exact ChatGPT backend or output parity is claimed.
+
+| Tool | Purpose |
+| --- | --- |
+| `get_capabilities` | Nonbillable diagnostics; keeps configured, observed and unverified facts separate |
+| `generate_image` | One new immutable image, identified by a caller-retained operation UUID |
+| `edit_image` | One explicit artifact or approved local PNG reference; immutable parent/child lineage |
+| `get_operation` | Recover a saved result after interruption without submitting again |
+
+## Get started
+
+For an existing compatible deployment:
+
+```sh
+git clone https://github.com/juanmicrosoft/image-gen-mcp.git
+cd image-gen-mcp
+npm ci
+npm run build
+```
+
+Then follow [existing-deployment setup](docs/setup.md) to select credentials,
+set the inference endpoint/deployment/output directory, and create a private
+client configuration. Do not use an unpublished `npx` package or paste a key
+into shell history. The server is a stdio protocol process, not an interactive
+image-generation command.
+
+Starting from scratch? Use the separate [owner-tagged Bicep/Azure CLI setup](docs/azure-setup.md).
+The normal MCP never creates resources or retrieves management keys.
+The [administrator handoff](docs/evidence/authentication.md) explains the current
+keyless-authentication blocker; a token or management access is not inference permission.
+
+Ask Copilot to generate a hero with negative space, inspect it, then explicitly
+edit that artifact using a new operation UUID. Results include the immutable
+full-resolution path, dimensions, hash, lineage, available usage and an optional
+bounded image preview. Image requests are billable; diagnostics are not.
+
+## Presentations, safety and evidence
+
+The [PptxGenJS example](examples/presentation/README.md) consumes full-resolution
+artifacts into three editable slides. Its dependencies stay outside the runtime.
+Reference continuity is probabilistic; generated art does not replace editable text.
+
+Read [configuration](docs/configuration.md), [client setup/limits](docs/clients.md),
+[generation](docs/generation.md), [editing](docs/editing.md),
+[privacy/cost/recovery](docs/operations.md) and [bounded live evaluation](docs/evaluation.md).
+Previews can be disabled. Cancellation does not prove that a request stopped or
+was free; retain the operation ID and inspect it before explicitly submitting again.
+
+For contributors, `npm test` is offline and requires no Azure credentials.
+See [testing](docs/testing.md), [CONTRIBUTING.md](CONTRIBUTING.md) and
+[AGENTS.md](AGENTS.md) for the individual-PR, independent-review and evidence rules.
 
 The software and documentation are [MIT licensed](LICENSE). See
-[CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). This license
+[SECURITY.md](SECURITY.md). This license
 does not replace Azure/OpenAI service terms or guarantee rights in generated
 images or third-party source assets.
