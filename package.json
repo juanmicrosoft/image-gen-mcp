@@ -1,6 +1,7 @@
 {
   "name": "@juanmicrosoft/image-gen-mcp",
   "version": "0.1.0",
+  "license": "MIT",
   "description": "Local MCP image generation and editing through your Azure deployment.",
   "type": "module",
   "bin": { "image-gen-mcp": "dist/cli.js" },
