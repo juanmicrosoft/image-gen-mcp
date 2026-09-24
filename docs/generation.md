@@ -17,6 +17,10 @@ MIME type, dimensions, SHA-256, configured model/deployment evidence, safe reque
 ID if provided, and Azure usage counters if provided. Missing usage is `null`.
 Usage is persisted in the artifact manifest and survives replay/restart. No
 prompt, key, token or raw provider exception is stored in that manifest.
+The manifest quality records the requested option, not a visual-quality
+measurement. If Azure returns a quality field, it must equal `high`; contradictory
+or malformed values fail before saving. If absent, the requested option is
+retained without claiming provider-reported confirmation.
 
 With previews enabled, an additional MCP **image** content block carries a
 JPEG thumbnail, at most 512 pixels per edge and 256 KiB. This does not replace,

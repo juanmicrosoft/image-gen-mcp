@@ -110,3 +110,26 @@ test("provider errors, invalid image outputs and preview opt-out stay explicit",
   assert.equal(result.structuredContent.preview, "disabled");
   assert.ok(result.content.every((block) => block.type !== "image"));
 });
+
+test("provider quality must match when present; absent quality retains requested-option provenance", async (t) => {
+  for (const quality of ["high", "low", 1, null, undefined]) {
+    let calls = 0;
+    const { tools } = await setup(t, async () => {
+      calls++;
+      return Response.json({ data: [{ b64_json: png.toString("base64") }], ...(quality === undefined ? {} : { quality }) });
+    });
+    const args = { operation_id: randomUUID(), prompt: "An image" };
+    const result = await tools[0].invoke(args, signal);
+    if (quality === "high" || quality === undefined) {
+      assert.notEqual(result.isError, true);
+      assert.equal(result.structuredContent.artifact.metadata.quality, "high");
+    } else {
+      assert.equal(result.isError, true);
+      assert.equal(result.structuredContent.failureCategory, "provider_output");
+      const status = await tools.find((tool) => tool.definition.name === "get_operation").invoke({ operation_id: args.operation_id }, signal);
+      assert.equal(status.structuredContent.operation.artifact, undefined);
+    }
+    await tools[0].invoke(args, signal);
+    assert.equal(calls, 1);
+  }
+});

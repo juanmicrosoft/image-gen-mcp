@@ -13,6 +13,7 @@ const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const responseSchema = z.object({
   data: z.array(z.object({ b64_json: z.string().min(1) })).length(1),
   output_format: z.literal("png").optional(),
+  quality: z.literal("high").optional(),
   size: z.string().optional(),
   usage: z.unknown().optional(),
 });
