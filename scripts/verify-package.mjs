@@ -50,6 +50,7 @@ let stderr = "";
 transport.stderr?.on("data", (chunk) => { stderr += chunk; });
 try {
   await client.connect(transport);
+  assert.equal(client.getServerVersion()?.version, packed.version, "MCP and package versions must match.");
   assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(),
     ["edit_image", "generate_image", "get_capabilities", "get_operation"]);
   const result = await client.callTool({ name: "get_capabilities", arguments: {} });
