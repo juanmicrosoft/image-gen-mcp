@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { assertPackageInventory } from "./lib/package-inventory.mjs";
 
 const { values } = parseArgs({ options: {
   output: { type: "string" }, offline: { type: "boolean", default: false },
@@ -20,12 +21,7 @@ const out = await mkdtemp(join(values.output, "package-"));
 execFileSync(npm, ["run", "build"], { cwd: root, stdio: "inherit" });
 const [packed] = JSON.parse(execFileSync(npm, ["pack", "--ignore-scripts", "--json", "--pack-destination", out], { cwd: root, encoding: "utf8" }));
 const files = packed.files.map((file) => file.path);
-for (const path of files) {
-  assert.ok(!/(^|\/)(?:node_modules|\.[^/]*)(?:\/|$)/.test(path), `Private/unexpected packed path: ${path}`);
-  assert.ok(!/\.(?:pptx|pdf|tgz)$/.test(path), `Generated output in package: ${path}`);
-  assert.ok(!path.endsWith(".png") || path === "assets/image-gen-mcp.png", `Unexpected image: ${path}`);
-  assert.ok(/^(?:dist\/|docs\/|examples\/|evaluation\/briefs\.json$|scripts\/configure-client\.mjs$|assets\/image-gen-mcp\.png$|package\.json$|README\.md$|LICENSE$|CONTRIBUTING\.md$|SECURITY\.md$|AGENTS\.md$)/.test(path), `Not in package allowlist: ${path}`);
-}
+assertPackageInventory(files);
 for (const expected of ["dist/cli.js", "docs/setup.md", "scripts/configure-client.mjs", "LICENSE", "examples/presentation/build.mjs"]) assert.ok(files.includes(expected));
 const tarball = join(out, packed.filename);
 const installRoot = await mkdtemp(join(tmpdir(), "image-gen-package-"));
