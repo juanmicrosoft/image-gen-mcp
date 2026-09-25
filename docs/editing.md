@@ -27,3 +27,10 @@ For a bounded real stdio edit smoke check, use `scripts/smoke-mcp.mjs` as in the
 generation guide, with a fresh record path, the same approved ledger and
 `--source-artifact YOUR_SOURCE_ARTIFACT_UUID`. Supply an explicit edit brief via
 `--prompt`. This is billable; failed/unknown attempts count and are not retried.
+## Client schema compatibility
+
+The advertised tool schema is a plain top-level object: native VS Code Copilot
+Chat 0.67.0 rejects top-level `oneOf` tool schemas. Field descriptions explain
+the exclusive choice, and server-side validation still rejects both sources or
+neither source before configuration, operation creation or provider submission.
+Client-side schema acceptance does not replace this server-side check.
