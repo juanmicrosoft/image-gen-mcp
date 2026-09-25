@@ -1,5 +1,10 @@
 # Client and presentation integration — epic #5
 
+**Update:** [Later qualification](client-qualification.md) records successful
+installed VS Code generation/editing/inspection and local cancellation probes.
+The original unverified VS Code statements below describe the earlier run.
+Epic closure still requires the reviewed #21 acceptance update.
+
 2026-09-24. **This epic remains open** because authenticated VS Code acceptance
 in #21 is not established.
 

@@ -7,16 +7,18 @@ replace every uppercase placeholder in the appropriate example:
   or session-local `--additional-mcp-config @/absolute/config.json`. `/mcp add`
   is also available. The CLI uses top-level `mcpServers`.
 - [VS Code](../examples/vscode.mcp.json): workspace `.vscode/mcp.json`, using
-  top-level `servers`. This configuration is **unverified in this environment**,
-  not a claim that the full workflow or deadline works there.
+  top-level `servers`. Local VS Code 1.139.0 with built-in Copilot Chat 0.67.0
+  has [installed-client qualification evidence](evidence/client-qualification.md).
 
 See the [dated actual CLI evidence](evidence/copilot-cli.md) for the tested
 version, full generation/edit/inspection workflow, preview-off behavior and
-measured deadline/cancellation results. Other versions remain unverified.
+measured deadline/cancellation results. The later qualification record covers
+installed CLI and VS Code with CLI authentication; other versions remain unverified.
 
 The examples select CLI credentials explicitly. Successful inference with the
-current principal remains blocked in #11; do not confuse valid configuration
-with authorization. For explicit API-key mode, follow [configuration](configuration.md)
+tested principal succeeded after its resource-scoped inference grant; #11 retains
+stricter authorization/error-case gates. Do not confuse valid configuration with
+authorization. For explicit API-key mode, follow [configuration](configuration.md)
 and store credentials only in a private user configuration/secret mechanism,
 never a committed workspace JSON file. Runtime does not retrieve management keys.
 

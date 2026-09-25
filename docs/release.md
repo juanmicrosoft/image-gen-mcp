@@ -48,6 +48,13 @@ Dependency changes still need a tracked issue, dedicated PR and review.
 | Installation | [Onboarding](evidence/onboarding.md), [package record](evidence/packed-onboarding.md); packed generation passed, sole edit unknown |
 | Platform support | [Distribution boundaries](distribution.md); CI is not live-client/Entra/platform certification |
 
+**Qualification update, 2026-09-25 UTC:** the earlier table's linked initial
+records are historical. [Later installed-client evidence](evidence/client-qualification.md)
+proves CLI-token generation/editing and image access in both local macOS
+Copilot CLI and VS Code. The former packed edit remains unknown; stricter
+data-only/negative-case authorization and registry publication remain open.
+This is not a published release or an all-platform certification.
+
 ## Authorized publication checklist
 
 Publishing is a separate, currently blocked operation, not a side effect of

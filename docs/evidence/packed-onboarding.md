@@ -1,5 +1,9 @@
 # Clean packed onboarding: observed successes and unresolved edit
 
+**Historical run below.** [Later qualification](client-qualification.md) proves
+successful installed generation/editing with CLI tokens in both local clients.
+It neither recovers this earlier edit nor changes its unknown outcome.
+
 Issue #26; 2026-09-24, macOS arm64, Node 22.22.2, npm 10.9.7,
 Copilot CLI 1.0.79 with `--no-auto-update`.
 

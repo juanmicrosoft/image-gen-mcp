@@ -51,12 +51,13 @@ Key mode additionally requires `--allow-plaintext-key`; protect the resulting
 
 See [the package/onboarding run record](evidence/packed-onboarding.md).
 The source-build macOS/API-key/Copilot CLI workflow has successful generation,
-editing and inspection evidence. A fresh packed run proved installation,
-discovery, generation and read-only artifact recovery, but its single edit ended
-`outcome_unknown`; that successful packed-edit gate remains **open**.
+editing and inspection evidence. The first packed run's edit remains
+`outcome_unknown`. A [later installed-client qualification](evidence/client-qualification.md)
+proved generation/editing/inspection using CLI tokens in both Copilot CLI and
+VS Code on macOS. It does not change that earlier operation's state.
 
 Other end-to-end operating-system/client/auth combinations—including Windows
-path/spawn behavior, VS Code, WSL, containers and remote filesystems—are not
+path/spawn behavior, WSL, containers and remote filesystems—are not
 advertised as validated. Minimum Node engine metadata is not proof of every
 later Node version. Offline CI checks are separate from real client/inference
 support; do not extrapolate one into the other.

@@ -1,5 +1,9 @@
 # Distribution integration and release gates — epic #7
 
+**Update:** [Later qualification](client-qualification.md) proves CLI-token and
+VS Code installed-client paths. Initial unverified rows below are historical;
+registry authorization and original remaining dependency gates stay open.
+
 2026-09-24. **This epic remains open.** Public source and a tested tarball are not
 a published npm release, and registry authorization is unavailable.
 

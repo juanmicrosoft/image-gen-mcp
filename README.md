@@ -12,8 +12,10 @@ presentation workflows.
 tools have [real Azure evidence](docs/evidence/azure-contract.md),
 [actual Copilot CLI evidence](docs/evidence/copilot-cli.md) and a
 [rendered presentation example](docs/evidence/presentation.md).
-The verified client path is local macOS / Node 22.22.2 / Copilot CLI 1.0.79 /
-explicit API-key authentication. CLI-token inference, VS Code and npm publishing
+Verified paths include local macOS / Node 22.22.2 / Copilot CLI 1.0.79 and
+VS Code 1.139.0 with CLI-token generation/editing from an installed tarball.
+See the [qualification matrix and boundaries](docs/evidence/client-qualification.md).
+Strict least-privilege, remaining authentication cases and npm publication
 retain [open gates](https://github.com/juanmicrosoft/image-gen-mcp/milestone/1).
 
 The configured model profile is `gpt-image-2.5-sunburst`. V1 deliberately enables
@@ -47,8 +49,9 @@ image-generation command.
 
 Starting from scratch? Use the separate [owner-tagged Bicep/Azure CLI setup](docs/azure-setup.md).
 The normal MCP never creates resources or retrieves management keys.
-The [administrator handoff](docs/evidence/authentication.md) explains the current
-keyless-authentication blocker; a token or management access is not inference permission.
+The [authorization record](docs/evidence/authentication.md) explains the required
+resource-scoped grant and remaining limits; a token or management access alone
+is not inference permission.
 
 Ask Copilot to generate a hero with negative space, inspect it, then explicitly
 edit that artifact using a new operation UUID. Results include the immutable
