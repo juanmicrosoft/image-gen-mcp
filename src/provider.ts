@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_IMAGE_BYTES, validatePng } from "./artifacts.js";
 import { apiVersion } from "./capabilities.js";
-import type { Configuration } from "./config.js";
+import { credentialFailure, type Configuration } from "./config.js";
 import { ImageError, normalizeError, parseUsage, providerError } from "./errors.js";
 
 export interface ImageRequest {
@@ -54,8 +54,9 @@ async function requestImage(
     deadline.throwIfAborted();
     headers = await config.headers(deadline);
     deadline.throwIfAborted();
-  } catch {
-    throw new ImageError("authentication", "Credential acquisition failed or was cancelled before image submission. Check the selected auth mode, login and tenant.", true);
+  } catch (cause) {
+    const failure = credentialFailure(cause, deadline);
+    throw new ImageError("authentication", `Credential acquisition failed before image submission. ${failure.message}`, true, null, failure.reason);
   }
   let response: Response;
   try {
