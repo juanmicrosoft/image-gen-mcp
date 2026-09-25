@@ -28,9 +28,12 @@ claims that no administrator grant or CLI success has occurred.
 
 An additional local transport-denial experiment on 2026-09-25 used an explicitly
 nonfunctional synthetic key and a loopback proxy that rejects CONNECT without
-forwarding. The real stdio generation call returned `outcome_unknown`, not the
-expected distinguishable network diagnostic, and its operation remains unknown.
-Issue #68 tracks this diagnostic gap; this is not live Azure firewall evidence.
+forwarding. The real stdio generation call returned `error.code: outcome_unknown`
+and its operation remains unknown. The harness wrongly expected `network` in
+that primary field, rather than inspecting the existing separate
+`failureCategory`; it failed before retaining the full result. This does **not**
+prove missing diagnostic metadata. Issue #68 tracks the corrected validation;
+this is not live Azure firewall evidence.
 The initial control-only harness hung on socket teardown and was stopped before
 any MCP submission. The corrected harness consumed its separate one-attempt
 ledger; no automatic retry or reset was performed.
