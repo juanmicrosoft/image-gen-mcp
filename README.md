@@ -13,7 +13,10 @@ tools have [real Azure evidence](docs/evidence/azure-contract.md),
 [actual Copilot CLI evidence](docs/evidence/copilot-cli.md) and a
 [rendered presentation example](docs/evidence/presentation.md).
 Verified paths include local macOS / Node 22.22.2 / Copilot CLI 1.0.79 and
-VS Code 1.139.0 with CLI-token generation/editing from an installed tarball.
+the CLI-backed VS Code 1.139.0 session with CLI-token generation/editing from
+an installed tarball. Native Local Copilot Chat has a demonstrated preview-off
+recovery/edit workflow; inline previews encountered a host image-transport
+failure. Do not equate the two session backends.
 See the [qualification matrix and boundaries](docs/evidence/client-qualification.md).
 Strict least-privilege, remaining authentication cases and npm publication
 retain [open gates](https://github.com/juanmicrosoft/image-gen-mcp/milestone/1).

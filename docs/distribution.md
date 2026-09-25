@@ -53,8 +53,10 @@ See [the package/onboarding run record](evidence/packed-onboarding.md).
 The source-build macOS/API-key/Copilot CLI workflow has successful generation,
 editing and inspection evidence. The first packed run's edit remains
 `outcome_unknown`. A [later installed-client qualification](evidence/client-qualification.md)
-proved generation/editing/inspection using CLI tokens in both Copilot CLI and
-VS Code on macOS. It does not change that earlier operation's state.
+proved generation/editing/inspection using CLI tokens in Copilot CLI and the
+CLI-backed VS Code session on macOS. Native Local session evidence and its
+inline-image transport failure are recorded separately. These later runs do
+not change that earlier operation's state.
 
 Other end-to-end operating-system/client/auth combinations—including Windows
 path/spawn behavior, WSL, containers and remote filesystems—are not

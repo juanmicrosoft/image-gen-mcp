@@ -1,7 +1,10 @@
 # Client and presentation integration — epic #5
 
 **Update:** [Later qualification](client-qualification.md) records successful
-installed VS Code generation/editing/inspection and local cancellation probes.
+installed CLI-backed VS Code generation/editing/inspection and native Local
+generation followed by preview-off recovery/editing/inspection, plus native
+cancellation probes. The two backends are not interchangeable evidence;
+native inline-image transport encountered a separate host failure.
 The original unverified VS Code statements below describe the earlier run.
 Epic closure still requires the reviewed #21 acceptance update.
 

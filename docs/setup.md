@@ -85,7 +85,9 @@ than replacing an existing user file. Restart the MCP server/client after
 changing environment settings. See separate
 [CLI and VS Code examples](clients.md). VS Code uses different JSON; its tested
 local configuration is recorded separately. Shell exports may not reach
-GUI-launched clients.
+GUI-launched clients. Use the VS Code example's `IMAGE_GEN_PREVIEW=false`
+setting for the recorded native client; ask its local image reader to inspect
+returned PNG paths rather than relying on inline-preview transport.
 
 ## 3. Diagnose before a deliberately billable call
 

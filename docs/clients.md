@@ -8,15 +8,24 @@ replace every uppercase placeholder in the appropriate example:
   is also available. The CLI uses top-level `mcpServers`.
 - [VS Code](../examples/vscode.mcp.json): workspace `.vscode/mcp.json`, using
   top-level `servers`. Local VS Code 1.139.0 with built-in Copilot Chat 0.67.0
-  has [installed-client qualification evidence](evidence/client-qualification.md).
+  has [backend-specific qualification evidence](evidence/client-qualification.md).
+  The initial complete image run used the CLI-backed session, not native Local
+  Copilot Chat. Native generation succeeded, but after inline preview approval
+  a subsequent host model request failed with an upstream file-download 404.
+  The example therefore sets `IMAGE_GEN_PREVIEW=false`: native recovery,
+  explicit-source editing and full-resolution `view_image` access succeeded
+  with previews disabled. The failed session used GPT-5.6 Sol; recovery used
+  Claude Sonnet 5, so this does not isolate the cause or qualify every host
+  model. Do not regenerate to fix a failed host image request.
 
 See the [dated actual CLI evidence](evidence/copilot-cli.md) for the tested
 version, full generation/edit/inspection workflow, preview-off behavior and
 measured deadline/cancellation results. The later qualification record covers
-installed CLI and VS Code with CLI authentication; other versions remain unverified.
+installed CLI and VS Code with CLI authentication, distinguishing session
+backends and recovery boundaries; other versions remain unverified.
 
-The examples select CLI credentials explicitly. Successful inference with the
-tested principal succeeded after its resource-scoped inference grant; #11 retains
+The examples select CLI credentials explicitly. Inference with the tested
+principal succeeded after its resource-scoped inference grant; #11 retains
 stricter authorization/error-case gates. Do not confuse valid configuration with
 authorization. For explicit API-key mode, follow [configuration](configuration.md)
 and store credentials only in a private user configuration/secret mechanism,
