@@ -1,5 +1,45 @@
 # Authentication evidence and administrator blocker
 
+## Update: 2026-09-25 UTC
+
+The original grant blocker was resolved by an authorized administrator assigning
+Cognitive Services OpenAI User to the runtime user at the image-account scope.
+The intended runtime identity was restored and the assignment/token checked.
+CLI-token generation then succeeded; a later installed-client run also proved
+editing in both Copilot CLI and VS Code. See [qualification](client-qualification.md)
+for exact images, hashes, client versions and limits. No API-key fallback occurred.
+
+The first post-grant attempt failed credential acquisition (underlying cause
+unverified); its explicitly requested retry succeeded and exhausted that
+two-attempt budget. Generation operation `074bd779-c592-4368-b0df-16b9373c38bc`
+produced a fully decoded 1536x864 PNG with SHA-256
+`ee4e34517eb05912f0421f3390170b68206c8662f738a8399ba4940a285f65c6`,
+70,553 ms, usage 57 input / 1078 output / 1135 total. Nonbillable recovery
+returned the same artifact. The first #11 acceptance criterion is complete.
+
+**#11 remains open.** Read-only assignment inspection showed the runtime
+identity also has inherited Contributor access; it is not a strict data-only
+principal. No existing permission was removed to manufacture that proof.
+The new [safe diagnostic reasons](../diagnostics.md) distinguish observed
+unavailable-tenant and logged-out-profile failures. Live expiry and every
+negative-case behavior remain unproved; SDK generic login guidance can collapse
+different causes. The historical observations below are retained, not current
+claims that no administrator grant or CLI success has occurred.
+
+An additional local transport-denial experiment on 2026-09-25 used an explicitly
+nonfunctional synthetic key and a loopback proxy that rejects CONNECT without
+forwarding. The real stdio generation call returned `error.code: outcome_unknown`
+and its operation remains unknown. The harness wrongly expected `network` in
+that primary field, rather than inspecting the existing separate
+`failureCategory`; it failed before retaining the full result. This does **not**
+prove missing diagnostic metadata. Issue #68 tracks the corrected validation;
+this is not live Azure firewall evidence.
+The initial control-only harness hung on socket teardown and was stopped before
+any MCP submission. The corrected harness consumed its separate one-attempt
+ledger; no automatic retry or reset was performed.
+
+## Initial observations
+
 Issue #11 is **not complete**. Observed 2026-09-24 with Azure CLI 2.90.0:
 
 - API-key generation and single-reference editing succeeded on the

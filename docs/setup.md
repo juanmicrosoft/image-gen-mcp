@@ -30,9 +30,10 @@ Choose **one** authentication mode:
 **Authorized Azure CLI identity:** set `IMAGE_GEN_AUTH=azure-cli`, unset
 `AZURE_OPENAI_API_KEY`, run `az login` for the intended tenant, and optionally
 set `AZURE_TENANT_ID` to that tenant UUID. The owner/administrator must grant
-appropriate resource-scoped inference permission. The current test principal's
-401 and role-assignment denial remain [an explicit blocker](evidence/authentication.md);
-these commands alone are not proof of authorization.
+appropriate resource-scoped inference permission. The test principal's earlier
+401 was followed by successful generation/editing after an administrator grant;
+see [the authorization record and remaining limits](evidence/authentication.md).
+These commands alone are not proof of authorization.
 
 **Explicit API key:** obtain an authorized inference key from the resource owner
 through an approved secret channel. No Azure CLI or management discovery is
@@ -82,8 +83,11 @@ This session-local route avoids modifying the user's existing MCP configuration.
 For persistent registration, use `/mcp add` deliberately; merge settings rather
 than replacing an existing user file. Restart the MCP server/client after
 changing environment settings. See separate
-[CLI and VS Code examples](clients.md). VS Code uses different JSON and remains
-unverified in this environment; shell exports may not reach GUI-launched clients.
+[CLI and VS Code examples](clients.md). VS Code uses different JSON; its tested
+local configuration is recorded separately. Shell exports may not reach
+GUI-launched clients. Use the VS Code example's `IMAGE_GEN_PREVIEW=false`
+setting for the recorded native client; ask its local image reader to inspect
+returned PNG paths rather than relying on inline-preview transport.
 
 ## 3. Diagnose before a deliberately billable call
 
@@ -110,4 +114,5 @@ For a new resource instead of an existing deployment, follow the separate
 privileges are not runtime prerequisites when the owner supplies configuration.
 
 See the [dated onboarding evidence](evidence/onboarding.md) for what was actually
-executed, the warm-cache limitation and the unresolved packed-edit observation.
+executed and the warm-cache limitation. The [later qualification run](evidence/client-qualification.md)
+proved installed generation/editing without changing the earlier unknown outcome.

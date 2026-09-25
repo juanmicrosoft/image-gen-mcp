@@ -1,6 +1,6 @@
 # Release candidate and evidence index
 
-## Status — 2026-09-24
+## Status — 2026-09-25 UTC
 
 `0.1.0` is a source/tarball candidate, **not a verified published npm version**.
 `npm whoami` returned `ENEEDAUTH`; subsequent local registry reads failed with
@@ -40,13 +40,23 @@ Dependency changes still need a tracked issue, dedicated PR and review.
 | Surface | Dated evidence / limitation |
 | --- | --- |
 | Model/API/deployment | [Contract](evidence/azure-contract.md), [deployment](evidence/azure-deployment.md); no ChatGPT backend parity |
-| Authentication | [Authorization record](evidence/authentication.md); key mode works, CLI-token grant blocked |
-| Actual client | [Copilot CLI](evidence/copilot-cli.md); tested macOS/Node 22.22.2/CLI 1.0.79, VS Code unverified |
+| Authentication | [Authorization record](evidence/authentication.md); key and CLI-token inference observed; strict data-only and remaining negative cases unproved |
+| Actual client | [Installed-client qualification](evidence/client-qualification.md); macOS/Node 22.22.2/CLI 1.0.79 and VS Code 1.139.0; native Local recovery/editing qualified with previews off and recorded host-model boundaries |
 | Artifact quality | [Fixed three-case evaluation](evidence/visual-evaluation.md); not universal visual-quality assurance |
 | Reliability | [Offline fault/protocol evidence](evidence/reliability.md), [recovery](recovery.md); unknown is not free or retriable |
 | Presentation | [Rendered editable deck](evidence/presentation.md); viewer/font portability not guaranteed |
-| Installation | [Onboarding](evidence/onboarding.md), [package record](evidence/packed-onboarding.md); packed generation passed, sole edit unknown |
+| Installation | [Onboarding](evidence/onboarding.md), [later installed-client success](evidence/client-qualification.md); initial packed edit remains unknown, downstream authorization/onboarding gates remain |
 | Platform support | [Distribution boundaries](distribution.md); CI is not live-client/Entra/platform certification |
+
+**Qualification update, 2026-09-25 UTC:** the linked initial
+records retain historical failures. [Later installed-client evidence](evidence/client-qualification.md)
+proves CLI-token generation/editing and image access in local macOS
+Copilot CLI and CLI-backed VS Code. Native Local generation succeeded; after
+a host image-transport failure, preview-off recovery, editing and local-file
+inspection succeeded. Host model/version boundaries are recorded separately.
+The former packed edit remains unknown; stricter
+data-only/negative-case authorization and registry publication remain open.
+This is not a published release or an all-platform certification.
 
 ## Authorized publication checklist
 

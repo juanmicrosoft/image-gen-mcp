@@ -1,5 +1,9 @@
 # MCP core integration — epic #3
 
+**Update:** [Later installed-client qualification](client-qualification.md)
+proves CLI-token generation/editing in both local clients. Initial unresolved
+rows below are historical; the older packed unknown remains unknown.
+
 2026-09-24. This record integrates already reviewed child work; it adds no second
 implementation or new live request.
 

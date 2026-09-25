@@ -26,7 +26,17 @@ local no-automatic-resubmission behavior.
 
 The MCP `get_operation` tool is implemented. See
 [actual CLI deadline evidence](evidence/copilot-cli.md) and
-[process-kill/fault evidence](evidence/reliability.md); VS Code remains unverified.
+[process-kill/fault evidence](evidence/reliability.md). Later
+[native VS Code evidence](evidence/client-qualification.md) separately records
+local cancellation and successful status recovery after a host image-transport
+failure; this is not proof of provider cancellation.
+For the observed native host failure after successful generation, retain the
+operation UUID, set `IMAGE_GEN_PREVIEW=false`, restart the MCP server and start
+a fresh native chat. Call `get_operation` with that original UUID and use the
+client's local image reader on the returned full-resolution path. Do not issue
+another generation just because chat failed to display the first result.
+The successful recovery also used a different host model; see the linked
+record rather than assuming preview configuration alone fixes every host.
 Tests cover replay, conflicts, uncertain failures, post-save interruption/restart
 and concurrent exclusion. [Operations guidance](operations.md) explains privacy,
 retention and explicit cleanup without bypassing uncertain outcomes.

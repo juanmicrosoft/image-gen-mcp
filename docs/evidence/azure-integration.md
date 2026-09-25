@@ -1,5 +1,10 @@
 # Azure integration and remaining gate — epic #2
 
+**Update:** [Later qualification](client-qualification.md) resolves the
+resource-scoped grant and CLI-token generation/editing observations. Strict
+data-only and remaining authentication cases in #11 remain open. The initial
+integration record below is retained as history.
+
 2026-09-24. **This epic remains open.** Its dedicated integration PR records
 completed work and the authorization blocker without weakening acceptance.
 

@@ -19,7 +19,8 @@ implicit `.env` loading or hidden configuration-file precedence.
 Azure CLI auth uses `AzureCliCredential` with audience
 `https://cognitiveservices.azure.com/.default`. Run `az login` for the intended
 tenant/subscription. Obtaining a token does not establish inference permission;
-the tested current identity returned HTTP 401 PermissionDenied (#11). Authorized
+an earlier identity check returned HTTP 401 PermissionDenied (#11), followed by
+[successful CLI-token generation/editing after an authorized grant](evidence/client-qualification.md).
 API-key inference is verified separately. No fallback from CLI to a key occurs.
 API-key mode requires explicitly removing CLI-only tenant configuration.
 
@@ -32,7 +33,8 @@ not advertised by this version.
 GUI-launched VS Code may not inherit shell variables or the shell's Azure CLI
 PATH; configure the server's environment explicitly rather than assuming a shell
 export reached the editor. See the separate [client examples and evidence](clients.md);
-the current VS Code workflow remains unverified.
+the recorded VS Code workflow is qualified only for its tested local configuration.
 
 Tests validate explicit selection and safe errors with injected credentials,
-not live permission grants. The issue #11 administrator blocker remains open.
+not live permission grants. Issue #11 retains stricter data-only and negative-case
+validation limits; the original resource-scoped grant blocker was resolved.

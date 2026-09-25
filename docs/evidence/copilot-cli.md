@@ -1,5 +1,9 @@
 # Actual Copilot CLI integration
 
+**Update:** [Later installed-client evidence](client-qualification.md) proves
+CLI-token generation/editing and full-resolution inspection in both local
+Copilot CLI and VS Code. Earlier unverified rows below are historical.
+
 Issue #21, observed 2026-09-24, macOS arm64, Node 22.22.2. The test used the
 installed **Copilot CLI 1.0.79** with `--no-auto-update`; the automatically
 selected agent model reported `claude-sonnet-5`. This is the Copilot reasoning

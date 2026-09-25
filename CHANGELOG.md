@@ -17,6 +17,10 @@ example. Generated images are not bundled in the runtime.
 
 See [release gates and the dated evidence index](docs/release.md).
 API-key source-build Copilot CLI generation/editing and the rendered deck have
-direct evidence. CLI-token authorization, authenticated VS Code, successful
-fresh packed editing and registry publication remain unresolved. Metadata
+direct evidence. [Later qualification](docs/evidence/client-qualification.md)
+also demonstrates installed CLI-token generation/editing in Copilot CLI and
+CLI-backed VS Code, plus native Local recovery/editing with previews disabled.
+Native inline previews and every host model are not qualified.
+Strict data-only/remaining authentication checks and registry
+publication remain unresolved. Metadata
 version `0.1.0` is not a publication announcement.

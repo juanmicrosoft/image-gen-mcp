@@ -1,5 +1,10 @@
 # Onboarding evidence and limits
 
+**Update:** [Later qualification](client-qualification.md) proves CLI-token
+generation/editing in both installed local clients. The initial warm-cache
+and unknown-edit observations below remain historical facts. #28 still depends
+on the original remaining #11/#21 acceptance gates.
+
 Issue #28, 2026-09-24, macOS arm64, Node 22.22.2, npm 10.9.7.
 
 A fresh, separate Git clone of the PR candidate branch was created outside the
