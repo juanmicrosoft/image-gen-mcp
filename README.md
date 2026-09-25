@@ -18,8 +18,11 @@ an installed tarball. Native Local Copilot Chat has a demonstrated preview-off
 recovery/edit workflow; inline previews encountered a host image-transport
 failure. Do not equate the two session backends.
 See the [qualification matrix and boundaries](docs/evidence/client-qualification.md).
-Strict least-privilege, remaining authentication cases and npm publication
-retain [open gates](https://github.com/juanmicrosoft/image-gen-mcp/milestone/1).
+A separate [data-only Azure principal](docs/evidence/data-only-authentication.md)
+also generated and edited while an authenticated management read was denied.
+Live expired-session behavior remains unverified; ambiguous diagnostics do not
+claim a unique cause. npm publication remains an
+[open gate](https://github.com/juanmicrosoft/image-gen-mcp/milestone/1).
 
 The configured model profile is `gpt-image-2.5-sunburst`. V1 deliberately enables
 only the live-verified **1536x864, high-quality PNG** combination: one image,

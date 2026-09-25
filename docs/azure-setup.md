@@ -2,18 +2,21 @@
 
 Requires Azure CLI, Bicep and a signed-in Entra user. The identity needs resource
 creation/deployment permissions and permission to assign the resource-scoped
-**Cognitive Services OpenAI User** role. That role is the intended runtime role,
-not permission to provision infrastructure. Do not grant subscription-wide Owner
+**Cognitive Services OpenAI User** role. That built-in role includes management
+reads as well as inference permissions; it is not a strict data-only role or
+permission to provision infrastructure. Do not grant subscription-wide Owner
 to work around a failure.
 
 The default `--auth azure-cli` includes that role assignment. If an administrator
 cannot grant assignment rights, the separate explicit `--auth api-key` mode
 omits RBAC changes and does not claim CLI inference is enabled. It still requires
 authorized resource creation and, separately, key access for inference. No
-automatic fallback occurs. Ask an administrator to provision the least-privilege
-role before claiming keyless runtime support.
-See the [authentication evidence and administrator handoff](evidence/authentication.md)
-for the observed denial, exact candidate role and remaining validation gates.
+automatic fallback occurs. An administrator must grant inference access before
+CLI-token runtime use. A separate [tested data-only custom role](evidence/data-only-authentication.md)
+has zero management actions and one image data action; the provisioning template
+does not silently substitute that role for its documented built-in default.
+See the [authentication history](evidence/authentication.md) for earlier denials
+and the explicit live-expiry diagnostic limitation.
 
 Read [cost/geography guidance](live-testing.md) first. This template deliberately
 uses a public-network, key-enabled `AIServices` S0 account and a pinned Sunburst

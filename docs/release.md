@@ -40,12 +40,12 @@ Dependency changes still need a tracked issue, dedicated PR and review.
 | Surface | Dated evidence / limitation |
 | --- | --- |
 | Model/API/deployment | [Contract](evidence/azure-contract.md), [deployment](evidence/azure-deployment.md); no ChatGPT backend parity |
-| Authentication | [Authorization record](evidence/authentication.md); key and CLI-token inference observed; strict data-only and remaining negative cases unproved |
+| Authentication | [Isolated data-only proof](evidence/data-only-authentication.md); key/user-CLI evidence retained; live expiry unverified and explicitly outside revised v1 gate |
 | Actual client | [Installed-client qualification](evidence/client-qualification.md); macOS/Node 22.22.2/CLI 1.0.79 and VS Code 1.139.0; native Local recovery/editing qualified with previews off and recorded host-model boundaries |
 | Artifact quality | [Fixed three-case evaluation](evidence/visual-evaluation.md); not universal visual-quality assurance |
 | Reliability | [Offline fault/protocol evidence](evidence/reliability.md), [recovery](recovery.md); unknown is not free or retriable |
 | Presentation | [Rendered editable deck](evidence/presentation.md); viewer/font portability not guaranteed |
-| Installation | [Onboarding](evidence/onboarding.md), [later installed-client success](evidence/client-qualification.md); initial packed edit remains unknown, downstream authorization/onboarding gates remain |
+| Installation | [Onboarding](evidence/onboarding.md), [installed-client success](evidence/client-qualification.md), [data-only setup](evidence/data-only-authentication.md); initial packed edit remains unknown; local installs use warm cache |
 | Platform support | [Distribution boundaries](distribution.md); CI is not live-client/Entra/platform certification |
 
 **Qualification update, 2026-09-25 UTC:** the linked initial
@@ -54,8 +54,11 @@ proves CLI-token generation/editing and image access in local macOS
 Copilot CLI and CLI-backed VS Code. Native Local generation succeeded; after
 a host image-transport failure, preview-off recovery, editing and local-file
 inspection succeeded. Host model/version boundaries are recorded separately.
-The former packed edit remains unknown; stricter
-data-only/negative-case authorization and registry publication remain open.
+The former packed edit remains unknown. Separate data-only generation/editing,
+authenticated ARM denial and temporary authorization cleanup are now recorded.
+Live expired-session testing was explicitly removed from the v1 completion gate,
+not declared passed; conservative diagnostics and their limits remain documented.
+Registry publication remains open.
 This is not a published release or an all-platform certification.
 
 ## Authorized publication checklist

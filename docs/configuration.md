@@ -36,5 +36,6 @@ export reached the editor. See the separate [client examples and evidence](clien
 the recorded VS Code workflow is qualified only for its tested local configuration.
 
 Tests validate explicit selection and safe errors with injected credentials,
-not live permission grants. Issue #11 retains stricter data-only and negative-case
-validation limits; the original resource-scoped grant blocker was resolved.
+not live permission grants. Separate [data-only inference evidence](evidence/data-only-authentication.md)
+proves a scoped certificate-authenticated principal through Azure CLI; managed
+identity and live expired-session behavior are not advertised.

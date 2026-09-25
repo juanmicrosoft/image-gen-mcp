@@ -2,8 +2,12 @@
 
 **Update:** [Later qualification](client-qualification.md) proves CLI-token
 generation/editing in both installed local clients. The initial warm-cache
-and unknown-edit observations below remain historical facts. #28 still depends
-on the original remaining #11/#21 acceptance gates.
+and unknown-edit observations below remain historical facts.
+[Subsequent data-only onboarding](data-only-authentication.md) also proves the
+installed runtime needs no ARM read access, with isolated profile selection
+disclosed. It does not relabel service-principal sign-in as fresh human-user
+onboarding. Final closure depends on independent review of these combined,
+bounded records, not a claim that every platform/auth combination works.
 
 Issue #28, 2026-09-24, macOS arm64, Node 22.22.2, npm 10.9.7.
 

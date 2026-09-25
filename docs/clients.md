@@ -25,8 +25,10 @@ installed CLI and VS Code with CLI authentication, distinguishing session
 backends and recovery boundaries; other versions remain unverified.
 
 The examples select CLI credentials explicitly. Inference with the tested
-principal succeeded after its resource-scoped inference grant; #11 retains
-stricter authorization/error-case gates. Do not confuse valid configuration with
+principal succeeded after its resource-scoped inference grant. A separate
+[data-only principal proof](evidence/data-only-authentication.md) validates
+inference without management access, not a new Copilot UI/auth matrix row.
+Live expiry and ambiguous root causes remain unverified. Do not confuse valid configuration with
 authorization. For explicit API-key mode, follow [configuration](configuration.md)
 and store credentials only in a private user configuration/secret mechanism,
 never a committed workspace JSON file. Runtime does not retrieve management keys.

@@ -63,7 +63,7 @@ failure windows. There is no Azure exactly-once/idempotency guarantee.
 | --- | --- |
 | Configuration / `invalid_input` | Use the resource root `https://NAME.openai.azure.com/`, not a project/deployment URL. Use an explicit alias and absolute output directory. Only 1536x864/high/PNG/n=1 is enabled. Schema tests reject alternatives before submission. |
 | CLI credential acquisition | Check `az login` for the intended tenant and CLI PATH visible to the client. A syntactically valid tenant UUID can still be wrong. Do not paste raw credential errors/tokens into issues. Offline selection tests are not live authorization proof. |
-| `authentication` / `permission` | Verify the selected credential and resource-scoped inference permissions. The test principal initially returned live 401 `PermissionDenied`, then succeeded after an administrator's resource-scoped grant. Management access and a token alone did not suffice. #11 retains stricter authorization/error-case gates; do not grant subscription Owner as a shortcut. |
+| `authentication` / `permission` | Verify the selected credential and resource-scoped inference permissions. The test principal initially returned live 401 `PermissionDenied`, then succeeded after an administrator's resource-scoped grant. A separate data-only principal also generated/edited without ARM read access. A token alone does not prove inference permission; generic denial does not uniquely identify the root cause. Do not grant subscription Owner as a runtime shortcut. |
 | API key conflict | Explicitly select `IMAGE_GEN_AUTH=api-key`; remove CLI-only `AZURE_TENANT_ID`. Conversely remove the key in CLI mode. No fallback occurs. Never put keys in committed configuration. |
 | `deployment` | Check the exact endpoint and deployment alias with the resource owner. Diagnostics deliberately do not require management-plane discovery. An alias is not a model identity. |
 | `network` / `timeout` / unknown outcome | Check DNS, TLS, approved proxies/firewall and endpoint access without disabling certificate verification. Retain the operation ID; lookup before any explicit new submission. Offline network/cancellation cases prove classification, not every corporate network configuration. |
@@ -106,8 +106,9 @@ No exact ChatGPT model routing or output parity is claimed.
 The [later qualification](evidence/client-qualification.md) also proves
 CLI-token inference and distinguishes CLI-backed versus native Local VS Code
 sessions, including a native host image-transport failure and recovery.
-A strict data-only principal, remaining authentication cases, unrestricted
-native-client support, other operating systems/remote arrangements and npm
-publication retain explicit gates in the
-milestone. Source availability and MIT licensing do not replace Azure/OpenAI
+A separate [data-only principal](evidence/data-only-authentication.md) generated
+and edited while ARM read was denied. Live expiry, unrestricted native-client
+support and other operating systems/remote arrangements are not advertised;
+npm publication remains an explicit gate in the milestone.
+Source availability and MIT licensing do not replace Azure/OpenAI
 terms or guarantee rights in source/generated imagery.

@@ -2,7 +2,11 @@
 
 **Update:** [Later qualification](client-qualification.md) proves CLI-token and
 VS Code installed-client paths. Initial unverified rows below are historical;
-registry authorization and original remaining dependency gates stay open.
+the [data-only onboarding record](data-only-authentication.md) adds isolated
+authorization and the explicit diagnostic-acceptance refinement.
+Registry authorization/publication remain open.
+
+## Historical integration record
 
 2026-09-24. **This epic remains open.** Public source and a tested tarball are not
 a published npm release, and registry authorization is unavailable.

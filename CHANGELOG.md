@@ -21,6 +21,9 @@ direct evidence. [Later qualification](docs/evidence/client-qualification.md)
 also demonstrates installed CLI-token generation/editing in Copilot CLI and
 CLI-backed VS Code, plus native Local recovery/editing with previews disabled.
 Native inline previews and every host model are not qualified.
-Strict data-only/remaining authentication checks and registry
-publication remain unresolved. Metadata
+An [isolated data-only principal](docs/evidence/data-only-authentication.md)
+also generated/edited with management read denied. Live expired-session
+behavior remains unverified and is explicitly outside the revised v1 acceptance
+gate; recognized diagnostic signals are not exhaustive root-cause diagnosis.
+Registry publication remains unresolved. Metadata
 version `0.1.0` is not a publication announcement.
