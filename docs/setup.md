@@ -34,6 +34,9 @@ appropriate resource-scoped inference permission. The test principal's earlier
 401 was followed by successful generation/editing after an administrator grant;
 see [the authorization record and remaining limits](evidence/authentication.md).
 These commands alone are not proof of authorization.
+An administrator can supply a narrower data-only custom role for the tested
+contract: see [the exact permission and live proof](evidence/data-only-authentication.md).
+The normal MCP requires no management discovery or application creation.
 
 **Explicit API key:** obtain an authorized inference key from the resource owner
 through an approved secret channel. No Azure CLI or management discovery is
@@ -74,6 +77,14 @@ isolate secrets from an agent/tool running as the same OS user; retain the host'
 path/tool approval boundaries. It does not copy GitHub
 tokens or unrelated environment variables. A different secret-manager launcher
 is possible, but is not claimed as tested here.
+
+If you deliberately use a separate Azure CLI profile, explicitly add its
+absolute path as `AZURE_CONFIG_DIR` in the server's private `env` configuration.
+The helper does not copy that unrelated environment variable. The isolated
+data-only proof used this setting and certificate-based `az login
+--service-principal --allow-no-subscriptions`; it is not a prerequisite for the
+normal signed-in user workflow. Keep certificate/private-key and CLI-cache
+files private; do not put them in committed configuration.
 
 ```sh
 copilot --additional-mcp-config "@$HOME/.config/image-gen-mcp/copilot.mcp.json"

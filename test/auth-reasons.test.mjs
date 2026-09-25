@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { credentialFailure, loadConfiguration } from "../dist/config.js";
 import { capabilitiesTool } from "../dist/capabilities.js";
 import { generate } from "../dist/provider.js";
@@ -55,4 +59,30 @@ test("abort reasons take precedence over ambiguous credential messages", () => {
   assert.equal(credentialFailure(new Error("private"), AbortSignal.abort()).reason, "cancelled");
   const failure = credentialFailure(unavailable("AADSTS90002"));
   assert.equal(credentialFailure(failure), failure);
+});
+
+test("real SDK collapses synthetic expiry guidance before MCP classification", { skip: process.platform === "win32" }, async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "credential-collapse-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const [guidance, reason] of [
+    ["", "session_expired"],
+    [" Please run az login.", "login_required"],
+  ]) {
+    await writeFile(join(root, "az"),
+      `#!/bin/sh\nprintf '%s\\n' 'AADSTS700082 ${secret}${guidance}' >&2\nexit 1\n`,
+      { mode: 0o700 });
+    const client = new Client({ name: "synthetic-sdk-collapse", version: "1" });
+    try {
+      await client.connect(new StdioClientTransport({
+        command: process.execPath, args: [resolve("dist/cli.js")],
+        env: { ...base, PATH: root, HOME: root, AZURE_CONFIG_DIR: root, IMAGE_GEN_AUTH: "azure-cli" },
+        stderr: "pipe",
+      }));
+      const result = await client.callTool({ name: "get_capabilities", arguments: { check_credentials: true } });
+      assert.equal(result.isError, true);
+      assert.equal(result.structuredContent.checks.credentialAcquisition.reason, reason);
+      assert.equal(result.structuredContent.checks.inference.status, "unverified");
+      assert.ok(!JSON.stringify(result).includes(secret));
+    } finally { await client.close(); }
+  }
 });

@@ -1,6 +1,16 @@
-# Authentication evidence and administrator blocker
+# Authentication evidence and historical blockers
 
-## Update: 2026-09-25 UTC
+## Latest: isolated data-only proof
+
+The [separate 2026-09-25 data-only run](data-only-authentication.md) proved
+certificate-authenticated Azure CLI generation/editing with zero management
+role actions and an actual authenticated ARM read denial. Temporary test
+authorization and local credentials were removed and absence verified.
+The same record includes the current diagnostic matrix and explicit #11
+acceptance revision: live expiry remains unverified and was removed from the
+v1 completion gate, not marked tested. The observations below are historical.
+
+## Earlier post-grant observations: 2026-09-25 UTC
 
 The original grant blocker was resolved by an authorized administrator assigning
 Cognitive Services OpenAI User to the runtime user at the image-account scope.

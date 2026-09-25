@@ -178,5 +178,7 @@ are qualified; Windows, WSL, SSH, containers and remote filesystems are not.
 
 The old packed edit in [the earlier run](packed-onboarding.md) remains unknown:
 this later success did not recover it or explain its timing anomaly. Strict
-data-only authorization, live expiry/negative-case coverage and npm publication
-remain separate gates. Neither this record nor green CI closes them.
+data-only authorization was not established by these client runs; see the
+[subsequent isolated proof and diagnostic-acceptance refinement](data-only-authentication.md).
+Live expired-session behavior remains unverified; npm publication is still a
+separate gate. Neither these client runs nor green CI prove those outcomes.

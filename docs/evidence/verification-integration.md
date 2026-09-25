@@ -2,8 +2,10 @@
 
 **Update:** [Later installed-client qualification](client-qualification.md)
 proves successful editing and image access in both local clients without
-changing the earlier unknown operation. #26 retains its original dependencies;
-the initial record below remains historical.
+changing the earlier unknown operation. The [data-only onboarding record](data-only-authentication.md)
+adds the isolated authorization proof and bounds #26's dependency disposition.
+
+## Historical integration record
 
 2026-09-24. **This epic remains open** because the complete fresh packed-client
 acceptance in #26 is missing.

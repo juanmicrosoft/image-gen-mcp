@@ -57,6 +57,9 @@ proved generation/editing/inspection using CLI tokens in Copilot CLI and the
 CLI-backed VS Code session on macOS. Native Local session evidence and its
 inline-image transport failure are recorded separately. These later runs do
 not change that earlier operation's state.
+A separate [installed data-only authentication run](evidence/data-only-authentication.md)
+proves CLI-token generation/editing without ARM account-read permission.
+That SDK-driven run is not another Copilot UI test or a fresh human-user login.
 
 Other end-to-end operating-system/client/auth combinations—including Windows
 path/spawn behavior, WSL, containers and remote filesystems—are not

@@ -54,3 +54,8 @@ and `login_required` respectively. Both retained `inference: unverified`; no
 image requests were made and the active login was not modified. The empty
 profile was removed afterward. These observations do not prove live expiry,
 Conditional Access behavior or every network policy.
+
+The real-SDK regression in `test/auth-reasons.test.mjs` uses a temporary fake
+CLI to demonstrate loss of synthetic expiry detail when stderr includes generic
+login guidance. It makes no provider request and is not live-expiry proof.
+See the [explicit v1 acceptance refinement and diagnostic matrix](evidence/data-only-authentication.md).
