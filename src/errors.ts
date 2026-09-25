@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CredentialFailureReason } from "./config.js";
 
 export const errorCodes = [
   "invalid_input", "authentication", "permission", "deployment", "policy", "quota",
@@ -15,6 +16,7 @@ export class ImageError extends Error {
     message: string,
     readonly knownFailure = false,
     requestId?: string | null,
+    readonly authReason?: CredentialFailureReason,
   ) {
     super(message);
     this.requestId = requestId && /^[\w.-]{1,128}$/.test(requestId) ? requestId : null;
@@ -76,6 +78,7 @@ export function errorResult(error: unknown): CallToolResult {
     outcome: safe.knownFailure ? "failed" : "unknown",
     automaticRetry: false,
     billing: "unknown",
+    ...(safe.authReason ? { authReason: safe.authReason } : {}),
   };
   return {
     isError: true,

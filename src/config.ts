@@ -1,8 +1,43 @@
 import { AzureCliCredential } from "@azure/identity";
 import { isAbsolute, resolve } from "node:path";
 import { z } from "zod";
+import { normalizeError } from "./errors.js";
 
 export class ConfigurationError extends Error {}
+export type CredentialFailureReason = "login_required" | "tenant_unavailable" | "session_expired" |
+  "cli_unavailable" | "credential_timeout" | "cancelled" | "network" | "unknown";
+const credentialMessages: Record<CredentialFailureReason, string> = {
+  login_required: "Azure CLI requires sign-in. Run az login for the intended tenant; the SDK may combine missing and expired sessions into this result.",
+  tenant_unavailable: "Azure reported that the requested tenant is unavailable or the account cannot sign in to it. Verify the intended tenant and account.",
+  session_expired: "Azure reported an expired sign-in session. Sign in again to the intended tenant.",
+  cli_unavailable: "Azure CLI could not be found. Install it and ensure the MCP process can locate az.",
+  credential_timeout: "Azure CLI credential acquisition timed out. Check token acquisition separately before explicitly retrying.",
+  cancelled: "Credential acquisition was cancelled. Inspect the operation before explicitly retrying.",
+  network: "Credential acquisition encountered a network transport failure. Check connectivity before explicitly retrying.",
+  unknown: "Azure CLI credential acquisition failed; its cause is unknown. Check login and the intended tenant.",
+};
+export class CredentialAcquisitionError extends ConfigurationError {
+  constructor(readonly reason: CredentialFailureReason, cause: unknown) {
+    super(`${credentialMessages[reason]} No fallback was attempted; no alternate credential was tried.`, { cause });
+  }
+}
+
+export function credentialFailure(cause: unknown, signal?: AbortSignal): CredentialAcquisitionError {
+  if (cause instanceof CredentialAcquisitionError) return cause;
+  let reason: CredentialFailureReason = "unknown";
+  const abortReason: unknown = signal?.aborted ? signal.reason : cause;
+  if (abortReason instanceof Error && abortReason.name === "TimeoutError") reason = "credential_timeout";
+  else if (signal?.aborted || (cause instanceof Error && cause.name === "AbortError")) reason = "cancelled";
+  else if (normalizeError(cause).code === "network") reason = "network";
+  else if (cause instanceof Error && cause.name === "CredentialUnavailableError") {
+    const message = cause.message.slice(0, 16_384);
+    if (/\bAADSTS(?:700082|700084|70043)\b/.test(message)) reason = "session_expired";
+    else if (/\bAADSTS(?:90002|50020)\b/.test(message)) reason = "tenant_unavailable";
+    else if (message.includes("Azure CLI could not be found.")) reason = "cli_unavailable";
+    else if (message.includes("Please run 'az login' from a command prompt to authenticate before using this credential.")) reason = "login_required";
+  }
+  return new CredentialAcquisitionError(reason, cause);
+}
 export interface Configuration {
   endpoint: string;
   deployment: string;
@@ -78,7 +113,7 @@ export function loadConfiguration(
         if (!token?.token) throw new Error("No token returned.");
         return { authorization: `Bearer ${token.token}` };
       } catch (cause) {
-        throw new ConfigurationError("Azure CLI authentication failed. Run az login for the intended tenant; no alternate credential was tried.", { cause });
+        throw credentialFailure(cause, signal);
       }
     },
   };

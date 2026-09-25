@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ConfigurationError, loadConfiguration, type Configuration } from "./config.js";
+import { ConfigurationError, credentialFailure, loadConfiguration, type Configuration, type CredentialFailureReason } from "./config.js";
 import { errorResult } from "./errors.js";
 import type { ToolHandler } from "./server.js";
 
@@ -7,7 +7,7 @@ export const sizes = ["1536x864"] as const;
 export const qualities = ["high"] as const;
 export const apiVersion = "2025-04-01-preview";
 const argsSchema = z.object({ check_credentials: z.boolean().default(false) }).strict();
-type Check = { status: "passed" | "failed" | "unverified"; detail: string };
+type Check = { status: "passed" | "failed" | "unverified"; detail: string; reason?: CredentialFailureReason };
 
 export function capabilitiesTool(load: () => Configuration = loadConfiguration): ToolHandler {
   return {
@@ -50,8 +50,9 @@ export function capabilitiesTool(load: () => Configuration = loadConfiguration):
               ? "A key is configured. Its validity and inference permissions remain unverified."
               : "A CLI token was acquired. Inference permissions remain unverified.",
           };
-        } catch {
-          checks.credentialAcquisition = { status: "failed", detail: "Credential acquisition failed or was cancelled. Check az login, the selected tenant and explicit auth mode; no fallback was attempted." };
+        } catch (cause) {
+          const failure = credentialFailure(cause, signal);
+          checks.credentialAcquisition = { status: "failed", detail: failure.message, reason: failure.reason };
         }
       }
       const data = {
