@@ -75,22 +75,40 @@ test("MCP validates options before submission, preserves exact request and repla
   assert.equal(conflict.structuredContent.error.code, "conflict");
 });
 
-test("ambiguous transport failures are not retried and carry operation ID, category and billing warning", async (t) => {
-  let calls = 0;
-  const { tools } = await setup(t, async () => {
-    calls++;
-    throw new TypeError("private-provider-error", { cause: Object.assign(new Error(), { code: "ECONNRESET" }) });
-  });
-  const args = { operation_id: randomUUID(), prompt: "An image" };
-  const result = await tools[0].invoke(args, signal);
-  assert.equal(result.isError, true);
-  assert.equal(result.structuredContent.operationId, args.operation_id);
-  assert.equal(result.structuredContent.error.code, "outcome_unknown");
-  assert.equal(result.structuredContent.failureCategory, "network");
-  assert.match(result.structuredContent.error.message, /charges/);
-  assert.ok(!JSON.stringify(result).includes("private-provider"));
-  await tools[0].invoke(args, signal);
-  assert.equal(calls, 1);
+test("uncertain failures separate cause from outcome, redact details and never resubmit after restart", async (t) => {
+  const privateDetail = "private-key-provider-prompt";
+  for (const [cause, category] of [
+    [new TypeError(privateDetail, { cause: Object.assign(new Error(privateDetail), { code: "ECONNRESET" }) }), "network"],
+    [new TypeError(privateDetail, { cause: Object.assign(new Error(privateDetail), { code: "ECONNREFUSED" }) }), "network"],
+    [new DOMException(privateDetail, "TimeoutError"), "timeout"],
+    [new DOMException(privateDetail, "AbortError"), "timeout"],
+    [new TypeError(privateDetail, { cause: Object.assign(new Error(privateDetail), { code: "UND_ERR_ABORTED" }) }), "internal"],
+  ]) {
+    let calls = 0;
+    const fetcher = async () => { calls++; throw cause; };
+    const { tools, load } = await setup(t, fetcher);
+    const args = { operation_id: randomUUID(), prompt: privateDetail };
+    const result = await tools[0].invoke(args, signal);
+    assert.equal(result.isError, true);
+    assert.equal(result.structuredContent.operationId, args.operation_id);
+    assert.equal(result.structuredContent.error.code, "outcome_unknown");
+    assert.equal(result.structuredContent.failureCategory, category);
+    assert.equal(result.structuredContent.error.outcome, "unknown");
+    assert.equal(result.structuredContent.error.billing, "unknown");
+    assert.equal(result.structuredContent.error.automaticRetry, false);
+    assert.match(result.structuredContent.error.message, /charges/);
+    assert.ok(!JSON.stringify(result).includes(privateDetail));
+    assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent);
+    const restarted = imageTools(load, fetcher);
+    const status = await restarted.find((tool) => tool.definition.name === "get_operation").invoke({ operation_id: args.operation_id }, signal);
+    assert.equal(status.structuredContent.state, "outcome_unknown");
+    assert.equal(status.structuredContent.automaticResubmission, false);
+    assert.equal(status.structuredContent.operation.artifact, undefined);
+    const replay = await restarted[0].invoke(args, signal);
+    assert.equal(replay.structuredContent.error.code, "outcome_unknown");
+    assert.equal(replay.structuredContent.failureCategory, "outcome_unknown");
+    assert.equal(calls, 1);
+  }
 });
 
 test("provider errors, invalid image outputs and preview opt-out stay explicit", async (t) => {
