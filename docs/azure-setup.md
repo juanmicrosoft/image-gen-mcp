@@ -1,7 +1,7 @@
 # Isolated Azure deployment
 
-For an agent-driven experience, paste the [single README setup prompt](../README.md#get-started)
-into your local coding agent. It can run the commands below through Azure CLI;
+For an agent-driven experience, send the [single README setup prompt](../README.md#get-started)
+as a message to your local coding agent. It can run the commands below through Azure CLI;
 no Azure portal resource setup is required. You still complete interactive
 sign-in and explicitly approve the subscription, topology/costs and permission
 changes. Missing model access/quota or role-assignment rights requires the

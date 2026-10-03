@@ -1,6 +1,6 @@
 # Copilot, Claude Code and filesystem boundaries
 
-Start with the [single copyable setup prompt](../README.md#get-started). Install the
+Start with the [single setup prompt](../README.md#get-started), sent as your message. Install the
 pinned published runtime as in the README, or build a source checkout. For
 registry installs, use the absolute entrypoint
 `/YOUR/PREFIX/node_modules/@juanmicrosoft/image-gen-mcp/dist/cli.js` in place of
@@ -31,7 +31,7 @@ For Claude Code, replace the command after `--` with the bundle launcher alone.
   Claude Sonnet 5, so this does not isolate the cause or qualify every host
   model. Do not regenerate to fix a failed host image request.
 
-## Copilot CLI: private session-local setup
+## Copilot CLI: session-local or user setup
 
 After setting runtime environment variables as in [setup](setup.md), the
 published package includes the Copilot-specific helper:
@@ -45,8 +45,8 @@ copilot --additional-mcp-config "@$HOME/.config/image-gen-mcp/copilot.mcp.json"
 This assumes the README installation prefix. The helper refuses to overwrite
 an existing file; inspect it rather than deleting it blindly. Use `/mcp` to
 inspect the server and ask for `get_capabilities`, not an automatic paid test.
-For deliberate persistent registration, use `/mcp add` or merge the entry into
-the user configuration. Preserve other servers and tool-approval settings.
+For persistent registration, which is the default for the prompt-driven setup,
+use `/mcp add` or merge the entry into the user configuration. Preserve other servers and tool-approval settings.
 For the prompt-first CLI-auth path, set `IMAGE_GEN_PREVIEW=false` and unset
 `AZURE_OPENAI_API_KEY` before running the helper. Explicitly add an isolated
 `AZURE_CONFIG_DIR` to the private server `env` if used; the helper does not copy it.
@@ -62,6 +62,9 @@ give the user a launch command with the actual private config path:
 copilot --resume --additional-mcp-config "@$HOME/.config/image-gen-mcp/copilot.mcp.json"
 ```
 
+If the entry was merged into the user `~/.copilot/mcp-config.json` instead,
+relaunch with `copilot --resume` and no `--additional-mcp-config` flag.
+
 `--resume` offers session selection; use `--resume=SESSION_ID` when the correct
 ID is known. Check installed `copilot --help` if options differ. The user should
 exit the old CLI and launch this from their terminal; the agent need not start
@@ -73,7 +76,7 @@ absolute checkpoint path without repeating the full setup prompt. Revalidate
 saved approval provenance before any new write; never provision again merely
 because the session changed.
 
-## Claude Code: local stdio registration
+## Claude Code: stdio registration
 
 This is **Claude Code**, not Claude Desktop/web. The command syntax was checked
 against the [official MCP reference](https://code.claude.com/docs/en/mcp) and
@@ -81,11 +84,11 @@ installed CLI help; generation/editing in Claude Code has **not** been qualified
 Using a Claude model inside Copilot does not establish Claude Code support.
 
 After choosing the endpoint/deployment/output path in [setup](setup.md), run
-this in the project where you want Claude Code to use the server:
+this to make the server available in every Claude Code project for your user:
 
 ```sh
 claude mcp add \
-  --scope local \
+  --scope user \
   --env "AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT" \
   --env "AZURE_OPENAI_IMAGE_DEPLOYMENT=$AZURE_OPENAI_IMAGE_DEPLOYMENT" \
   --env "IMAGE_GEN_OUTPUT_DIR=$IMAGE_GEN_OUTPUT_DIR" \
@@ -96,9 +99,12 @@ claude mcp add \
 claude mcp get image-gen
 ```
 
-`--scope local` keeps the entry private to this user/project rather than writing
-shared `.mcp.json`. Inspect `claude mcp list` first and stop if `image-gen` already
-exists. Confirm environment variables are populated before running the command.
+`--scope user` stores the entry in your private user configuration and makes it
+available across projects; it never writes a shared `.mcp.json`. To limit the
+server to the current project only, use `--scope local` instead. At user scope
+the billable image tools are offered in every project; remove the entry with
+`claude mcp remove --scope user image-gen`. Inspect
+`claude mcp list` first and stop if `image-gen` already exists. Confirm environment variables are populated before running the command.
 Unset `AZURE_OPENAI_API_KEY` in the launch environment when using CLI auth.
 If selected, add `--env "AZURE_TENANT_ID=$AZURE_TENANT_ID"` and, for an isolated
 login profile, `--env "AZURE_CONFIG_DIR=$AZURE_CONFIG_DIR"` **before**
@@ -107,9 +113,10 @@ Do not put keys/tokens in command arguments. The final `--` separates host optio
 from the server command. Resolve `node` to an absolute path if the host PATH
 differs; Azure CLI must also be reachable by the server.
 
-Start/restart `claude` in that project, inspect `/mcp`, and ask it to discover the
-four tools and call only `get_capabilities`. Approve tools deliberately; neither
-registration nor diagnostics proves inference access. Do not copy the
+Exit and restart `claude` (`claude --continue` resumes the last conversation),
+inspect `/mcp`, and ask it to discover the four tools and call only
+`get_capabilities`. Approve tools deliberately; neither registration nor
+diagnostics proves inference access. Do not copy the
 Copilot-specific `tools`/`timeout` properties into Claude's configuration.
 If a long-running image call is interrupted, retain its UUID and recover with
 `get_operation`; never treat a host timeout as permission to resubmit.
