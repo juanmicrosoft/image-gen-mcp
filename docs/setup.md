@@ -165,16 +165,20 @@ No Azure writes for this plan have occurred.
 <N> deployments in this subscription report <model> version <version>.
 Which one should the MCP use?
 
-1. `Use <account>` (Recommended) — <region>, alias `<alias>`; you have
-   <role> on this account.
-2. `Use <account>` — <region>, alias `<alias>`; no role at this account's
-   scope, so inference may be denied until one is granted.
+1. `Use <account>` (Recommended) — <region>, <resource group>, alias `<alias>`,
+   <endpoint>; <role> at <scope> includes image data actions.
+2. `Use <account>` — <same fields>; <access classification and scope, or
+   "no matching role found; group/PIM roles may be hidden">.
 3. `Enter details manually` — I will ask for endpoint, alias and model/version.
 4. `Cancel setup.` — stop.
 
 Choosing selects a deployment only; it does not authorize changes, installs or images.
-No resource has been changed.
+No Azure writes have occurred.
 ```
+
+With more than two candidates, keep this shape: name the recommended one as
+option 1, list the others in the question with one line each, and accept
+`Use <account>` for any listed account.
 
 ### Final resource/role write approval
 
@@ -280,7 +284,7 @@ export IMAGE_GEN_PREVIEW="true"
 These are placeholders, not live credentials. Use the inference resource root,
 not `/api/projects/...`, `/openai/...` or a complete deployment route. The host
 must be `<name>.openai.azure.com`: for an `AIServices` account, read it from
-`properties.endpoints['OpenAI Language Model Instance API']`, because
+`properties.endpoints."OpenAI Language Model Instance API"`, because
 `properties.endpoint` is the `cognitiveservices.azure.com` host and fails
 validation.
 Additional local edit paths require `IMAGE_GEN_INPUT_DIRS`, a JSON array of

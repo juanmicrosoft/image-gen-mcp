@@ -70,31 +70,38 @@ pick one instead of asking them to type an endpoint and alias:
 
 ```sh
 az cognitiveservices account list --subscription <id> \
-  --query "[?kind=='OpenAI' || kind=='AIServices'].{name:name, rg:resourceGroup, location:location}"
+  --query "[?kind=='OpenAI' || kind=='AIServices'].{id:id, name:name, rg:resourceGroup, location:location, endpoint:properties.endpoints.\"OpenAI Language Model Instance API\"}"
 az cognitiveservices account deployment list --subscription <id> -g <rg> -n <account> \
   --query "[].{alias:name, model:properties.model.name, version:properties.model.version, sku:sku.name, state:properties.provisioningState}"
-az role assignment list --assignee <signed-in object id> --include-inherited \
-  --scope <account resource id> --query "[].{role:roleDefinitionName, scope:scope}"
+az ad signed-in-user show --query id -o tsv
+az role assignment list --assignee <object id> --include-inherited --include-groups \
+  --scope <account id> --query "[].{role:roleDefinitionName, scope:scope}"
+az role definition list --name "<role>" --query "[0].permissions[0].dataActions"
 ```
 
 - Offer only deployments whose **deployment record** reports the supported
   model and version (`gpt-image-2.5-sunburst`, `2026-09-08`) with a succeeded
   state. Never infer the model from the alias.
-- Take the endpoint from
-  `properties.endpoints['OpenAI Language Model Instance API']`
-  (`https://<name>.openai.azure.com/`), not from `properties.endpoint`, which
-  is `*.cognitiveservices.azure.com` for `AIServices` accounts and is rejected
-  by the runtime.
-- For each candidate, show account, resource group, region, alias, model and
-  version, and whether the signed-in user has a role at that account's scope
-  (for example **Cognitive Services OpenAI User**). A listed role is not proof
-  that inference works; only a real image request proves that.
-- Present the candidates with the
-  [pick-deployment template](setup.md#pick-a-deployment-to-reuse), recommending
-  one with a resource-scoped inference role when available. Always include a
-  manual-entry option for resources in other subscriptions or ones the user
-  cannot list. If no compatible deployment is found, say so and offer manual
-  entry or a new deployment.
+- Use the `OpenAI Language Model Instance API` endpoint
+  (`https://<name>.openai.azure.com/`) for both `OpenAI` and `AIServices`
+  accounts. Do not use `properties.endpoint`: for `AIServices` accounts it is
+  the `cognitiveservices.azure.com` host, which the runtime rejects.
+- Classify access by **data actions**, not role names or management rights.
+  A role counts as likely inference access only if its `dataActions` cover
+  `Microsoft.CognitiveServices/accounts/OpenAI/images/generations/action`
+  (for example **Cognitive Services OpenAI User**, or a wildcard such as
+  `Microsoft.CognitiveServices/*` in **Foundry User**), at the account or any
+  parent scope. Owner and Contributor have no data actions. Name the role and
+  its scope. Say that PIM-eligible roles and deny assignments are not shown,
+  so "no matching role" means unknown, not denied. Only a real image request
+  proves inference.
+- For each candidate show account, resource group, region, endpoint, alias,
+  model and version, and the access classification. Present them with the
+  [pick-deployment template](setup.md#pick-a-deployment-to-reuse). With more
+  than two candidates, recommend one, list the rest in the question, and keep
+  manual entry and cancel as options. Always include a manual-entry option for
+  resources in other subscriptions or ones the user cannot list. If none is
+  found, say so and offer manual entry or a new deployment.
 - Stay inside the confirmed subscription. For manually entered details, verify
   the model/version when authorized, otherwise get confirmation from the owner.
 
