@@ -65,10 +65,40 @@ use a documented ARM endpoint and API version, cited rather than guessed.
 
 ### Reuse
 
-Ask for the inference endpoint and deployment alias before inspecting the
-resource. Verify the model/version when authorized, otherwise get confirmation
-from its owner. Do not modify an existing resource or treat its alias as proof
-of its model.
+Discover candidates in the confirmed subscription, read-only, and let the user
+pick one instead of asking them to type an endpoint and alias:
+
+```sh
+az cognitiveservices account list --subscription <id> \
+  --query "[?kind=='OpenAI' || kind=='AIServices'].{name:name, rg:resourceGroup, location:location}"
+az cognitiveservices account deployment list --subscription <id> -g <rg> -n <account> \
+  --query "[].{alias:name, model:properties.model.name, version:properties.model.version, sku:sku.name, state:properties.provisioningState}"
+az role assignment list --assignee <signed-in object id> --include-inherited \
+  --scope <account resource id> --query "[].{role:roleDefinitionName, scope:scope}"
+```
+
+- Offer only deployments whose **deployment record** reports the supported
+  model and version (`gpt-image-2.5-sunburst`, `2026-09-08`) with a succeeded
+  state. Never infer the model from the alias.
+- Take the endpoint from
+  `properties.endpoints['OpenAI Language Model Instance API']`
+  (`https://<name>.openai.azure.com/`), not from `properties.endpoint`, which
+  is `*.cognitiveservices.azure.com` for `AIServices` accounts and is rejected
+  by the runtime.
+- For each candidate, show account, resource group, region, alias, model and
+  version, and whether the signed-in user has a role at that account's scope
+  (for example **Cognitive Services OpenAI User**). A listed role is not proof
+  that inference works; only a real image request proves that.
+- Present the candidates with the
+  [pick-deployment template](setup.md#pick-a-deployment-to-reuse), recommending
+  one with a resource-scoped inference role when available. Always include a
+  manual-entry option for resources in other subscriptions or ones the user
+  cannot list. If no compatible deployment is found, say so and offer manual
+  entry or a new deployment.
+- Stay inside the confirmed subscription. For manually entered details, verify
+  the model/version when authorized, otherwise get confirmation from the owner.
+
+Do not modify an existing resource or treat its alias as proof of its model.
 
 ### New deployment
 
