@@ -165,10 +165,10 @@ No Azure writes for this plan have occurred.
 <N> deployments in this subscription report <model> version <version>.
 Which one should the MCP use?
 
-1. `Use <account>` (Recommended) — <region>, <resource group>, alias `<alias>`,
-   <endpoint>; <role> at <scope> includes image data actions.
-2. `Use <account>` — <same fields>; <access classification and scope, or
-   "no matching role found; group/PIM roles may be hidden">.
+1. `Use <account>/<alias>` (Recommended) — <region>; <role> at <scope level>
+   grants image data actions.
+2. `Use <account>/<alias>` — <region>; <access classification, or "no matching
+   role found; PIM-eligible roles and deny assignments are not shown">.
 3. `Enter details manually` — I will ask for endpoint, alias and model/version.
 4. `Cancel setup.` — stop.
 
@@ -176,9 +176,12 @@ Choosing selects a deployment only; it does not authorize changes, installs or i
 No Azure writes have occurred.
 ```
 
-With more than two candidates, keep this shape: name the recommended one as
-option 1, list the others in the question with one line each, and accept
-`Use <account>` for any listed account.
+Mark an option Recommended only when its role grants image data actions; if
+none does, recommend none. Keep resource group and endpoint for the checkpoint
+and the next step so the block stays within the routine limit. With more than
+two candidates, name the recommended one as option 1, list the others in the
+question with one line each, and accept `Use <account>/<alias>` for any listed
+deployment.
 
 ### Final resource/role write approval
 

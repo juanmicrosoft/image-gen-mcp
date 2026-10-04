@@ -75,8 +75,9 @@ az cognitiveservices account deployment list --subscription <id> -g <rg> -n <acc
   --query "[].{alias:name, model:properties.model.name, version:properties.model.version, sku:sku.name, state:properties.provisioningState}"
 az ad signed-in-user show --query id -o tsv
 az role assignment list --assignee <object id> --include-inherited --include-groups \
-  --scope <account id> --query "[].{role:roleDefinitionName, scope:scope}"
-az role definition list --name "<role>" --query "[0].permissions[0].dataActions"
+  --scope <account id> --query "[].{role:roleDefinitionName, roleId:roleDefinitionId, scope:scope}"
+az role definition list --name "<GUID at the end of roleId>" \
+  --query "[0].{role:roleName, da:permissions[0].dataActions, nda:permissions[0].notDataActions}"
 ```
 
 - Offer only deployments whose **deployment record** reports the supported
@@ -87,19 +88,25 @@ az role definition list --name "<role>" --query "[0].permissions[0].dataActions"
   accounts. Do not use `properties.endpoint`: for `AIServices` accounts it is
   the `cognitiveservices.azure.com` host, which the runtime rejects.
 - Classify access by **data actions**, not role names or management rights.
-  A role counts as likely inference access only if its `dataActions` cover
-  `Microsoft.CognitiveServices/accounts/OpenAI/images/generations/action`
+  Look roles up by definition GUID, because display names can be duplicated
+  by custom roles. A role counts as likely inference access only if its
+  `dataActions` cover
+  `Microsoft.CognitiveServices/accounts/OpenAI/images/generations/action` and
+  its `notDataActions` do not exclude it
   (for example **Cognitive Services OpenAI User**, or a wildcard such as
   `Microsoft.CognitiveServices/*` in **Foundry User**), at the account or any
   parent scope. Owner and Contributor have no data actions. Name the role and
   its scope. Say that PIM-eligible roles and deny assignments are not shown,
   so "no matching role" means unknown, not denied. Only a real image request
   proves inference.
-- For each candidate show account, resource group, region, endpoint, alias,
-  model and version, and the access classification. Present them with the
-  [pick-deployment template](setup.md#pick-a-deployment-to-reuse). With more
-  than two candidates, recommend one, list the rest in the question, and keep
-  manual entry and cancel as options. Always include a manual-entry option for
+- For each candidate show account, alias, region and the access
+  classification in the pick list; keep resource group, endpoint and role
+  scope in the checkpoint and show them on request or in the next step.
+  Present them with the
+  [pick-deployment template](setup.md#pick-a-deployment-to-reuse). Recommend
+  a candidate only if its access classification is likely inference access;
+  otherwise recommend none. With more than two candidates, list the rest in
+  the question and keep manual entry and cancel as options. Always include a manual-entry option for
   resources in other subscriptions or ones the user cannot list. If none is
   found, say so and offer manual entry or a new deployment.
 - Stay inside the confirmed subscription. For manually entered details, verify
