@@ -341,7 +341,8 @@ copilot --additional-mcp-config "@$HOME/.config/image-gen-mcp/copilot.mcp.json"
 ```
 
 This session-local route avoids modifying the user's existing MCP configuration.
-For persistent registration, use `/mcp add` deliberately; merge settings rather
+For persistent registration (the default for the prompt-driven setup in
+[agent-setup.md](agent-setup.md)), use `/mcp add` or merge settings rather
 than replacing an existing user file. Restart the MCP server/client after
 changing environment settings. See separate
 [CLI and VS Code examples](clients.md). VS Code uses different JSON; its tested
