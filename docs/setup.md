@@ -149,13 +149,39 @@ Tenant: <tenant>. Subscription: <subscription>.
 Which deployment path should I plan?
 
 1. `New deployment; confirmed` — check feasibility read-only, then propose a write plan.
-2. `Reuse; confirmed` — ask for endpoint, alias and model/version, then verify read-only.
+2. `Reuse; confirmed` — list compatible deployments in this subscription read-only, then ask which to use.
 3. `Change scope: <tenant/subscription>` — confirm a different scope first.
 4. `Cancel setup.` — stop.
 
 Choices authorize only the stated read-only planning, not resources, roles or images.
 No Azure writes for this plan have occurred.
 ```
+
+### Pick a deployment to reuse
+
+```text
+## ACTION REQUIRED — PICK DEPLOYMENT
+
+<N> deployments in this subscription report <model> version <version>.
+Which one should the MCP use?
+
+1. `Use <account>/<alias>` (Recommended) — <region>; <role> at <scope level>
+   grants image data actions.
+2. `Use <account>/<alias>` — <region>; <access classification, or "no matching
+   role found; PIM-eligible roles and deny assignments are not shown">.
+3. `Enter details manually` — I will ask for endpoint, alias and model/version.
+4. `Cancel setup.` — stop.
+
+Choosing selects a deployment only; it does not authorize changes, installs or images.
+No Azure writes have occurred.
+```
+
+Mark an option Recommended only when its role grants image data actions; if
+none does, recommend none. Keep resource group and endpoint for the checkpoint
+and the next step so the block stays within the routine limit. With more than
+two candidates, name the recommended one as option 1, list the others in the
+question with one line each, and accept `Use <account>/<alias>` for any listed
+deployment.
 
 ### Final resource/role write approval
 
@@ -259,7 +285,11 @@ export IMAGE_GEN_PREVIEW="true"
 ```
 
 These are placeholders, not live credentials. Use the inference resource root,
-not `/api/projects/...`, `/openai/...` or a complete deployment route.
+not `/api/projects/...`, `/openai/...` or a complete deployment route. The host
+must be `<name>.openai.azure.com`: for an `AIServices` account, read it from
+`properties.endpoints."OpenAI Language Model Instance API"`, because
+`properties.endpoint` is the `cognitiveservices.azure.com` host and fails
+validation.
 Additional local edit paths require `IMAGE_GEN_INPUT_DIRS`, a JSON array of
 explicit approved absolute directories. Artifact IDs need no extra input root.
 
