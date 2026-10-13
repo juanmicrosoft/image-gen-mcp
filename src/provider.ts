@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { MAX_IMAGE_BYTES, validatePng } from "./artifacts.js";
 import { apiVersion } from "./capabilities.js";
-import { credentialFailure, type Configuration } from "./config.js";
+import { credentialFailure, type Configuration, type AzureConfiguration } from "./config.js";
+import type { CopilotClientFactory } from "./copilot-provider.js";
 import { ImageError, normalizeError, parseUsage, providerError } from "./errors.js";
 
 export interface ImageRequest {
   prompt: string;
-  size: "1536x864";
-  quality: "high";
+  size: "1536x864" | "auto" | "1024x1024" | "1536x1024" | "1024x1536";
+  quality: "high" | "auto" | "low" | "medium";
 }
 const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const responseSchema = z.object({
@@ -18,34 +19,60 @@ const responseSchema = z.object({
   usage: z.unknown().optional(),
 });
 
-async function readResponse(response: Response): Promise<unknown> {
+async function readChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal?: AbortSignal,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (!signal) return reader.read();
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", abort);
+      callback();
+    };
+    const abort = () => {
+      void reader.cancel().catch(() => {});
+      finish(() => reject(signal.reason));
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    void reader.read().then(
+      value => finish(() => resolve(value)),
+      error => finish(() => reject(error)),
+    );
+  });
+}
+
+export async function readResponse(response: Response, provider = "Azure", signal?: AbortSignal): Promise<unknown> {
   if (!response.body) {
     if (!response.ok) return null;
-    throw new ImageError("provider_output", "Azure returned an empty response; charges may apply.");
+    throw new ImageError("provider_output", `${provider} returned an empty response; charges may apply.`);
   }
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readChunk(reader, signal);
       if (done) break;
       length += value.length;
       if (length > MAX_RESPONSE_BYTES) {
         await reader.cancel();
-        throw new ImageError("provider_output", "Azure response exceeded the local limit; charges may apply.");
+        throw new ImageError("provider_output", `${provider} response exceeded the local limit; charges may apply.`);
       }
       chunks.push(value);
     }
   } finally { reader.releaseLock(); }
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch {
     if (!response.ok) return null;
-    throw new ImageError("provider_output", "Azure returned invalid JSON; charges may apply.");
+    throw new ImageError("provider_output", `${provider} returned invalid JSON; charges may apply.`);
   }
 }
 
 async function requestImage(
-  config: Configuration, input: ImageRequest, signal: AbortSignal, fetcher: typeof fetch = fetch,
+  config: AzureConfiguration, input: ImageRequest, signal: AbortSignal, fetcher: typeof fetch = fetch,
   source?: Buffer,
 ) {
   const deadline = AbortSignal.any([signal, AbortSignal.timeout(180_000)]);
@@ -105,10 +132,18 @@ async function requestImage(
   }
 }
 
-export function generate(config: Configuration, input: ImageRequest, signal: AbortSignal, fetcher: typeof fetch = fetch) {
+export async function generate(config: Configuration, input: ImageRequest, signal: AbortSignal, fetcher: typeof fetch = fetch, clientFactory?: CopilotClientFactory) {
+  if (config.backend === "copilot") {
+    const { requestCopilotImage } = await import("./copilot-provider.js");
+    return requestCopilotImage(config, input, signal, undefined, clientFactory, fetcher);
+  }
   return requestImage(config, input, signal, fetcher);
 }
 
-export function edit(config: Configuration, input: ImageRequest, source: Buffer, signal: AbortSignal, fetcher: typeof fetch = fetch) {
+export async function edit(config: Configuration, input: ImageRequest, source: Buffer, signal: AbortSignal, fetcher: typeof fetch = fetch, clientFactory?: CopilotClientFactory) {
+  if (config.backend === "copilot") {
+    const { requestCopilotImage } = await import("./copilot-provider.js");
+    return requestCopilotImage(config, input, signal, source, clientFactory, fetcher);
+  }
   return requestImage(config, input, signal, fetcher, source);
 }

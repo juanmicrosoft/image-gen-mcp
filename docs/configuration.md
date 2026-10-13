@@ -6,6 +6,7 @@ implicit `.env` loading or hidden configuration-file precedence.
 
 | Variable | Meaning |
 | --- | --- |
+| `IMAGE_GEN_BACKEND` | `azure` (default) or explicit experimental `copilot`; no automatic fallback. |
 | `AZURE_OPENAI_ENDPOINT` | Required HTTPS `https://<resource>.openai.azure.com/` root; not a Foundry project endpoint. |
 | `AZURE_OPENAI_IMAGE_DEPLOYMENT` | Required deployment alias. An alias is not proof of its model. |
 | `AZURE_OPENAI_IMAGE_MODEL` | Optional explicit `gpt-image-2.5-sunburst` configured profile; other models rejected. |
@@ -15,6 +16,8 @@ implicit `.env` loading or hidden configuration-file precedence.
 | `AZURE_TENANT_ID` | Optional tenant UUID for CLI authentication. |
 | `AZURE_OPENAI_API_KEY` | Required only for API-key mode; conflicting CLI/key settings fail. |
 | `IMAGE_GEN_PREVIEW` | `true` (default) or `false`; controls bounded inline image previews. Empty values are invalid. |
+| `IMAGE_GEN_COPILOT_LOGIN` | Required only for Copilot mode. Exact expected signed-in GitHub login; mismatches refuse image submission. |
+| `IMAGE_GEN_COPILOT_CLI_PATH` | Optional absolute Copilot runtime executable path. When omitted, the pinned official SDK resolves its bundled portable runtime. |
 
 Azure CLI auth uses `AzureCliCredential` with audience
 `https://cognitiveservices.azure.com/.default`. Run `az login` for the intended
@@ -29,6 +32,18 @@ key/token field. Never log headers or original credential exceptions. No runtime
 tool should retrieve Azure management-plane keys or provision resources.
 Managed identity, sovereign/custom endpoint domains and remote filesystems are
 not advertised by this version.
+
+## Experimental native Copilot mode
+
+Copilot mode requires `IMAGE_GEN_BACKEND=copilot`,
+`IMAGE_GEN_COPILOT_LOGIN` and the same private `IMAGE_GEN_OUTPUT_DIR`.
+`IMAGE_GEN_INPUT_DIRS` and `IMAGE_GEN_PREVIEW` retain their storage meanings.
+Azure endpoint, deployment, tenant and API-key settings do not select or
+authorize this route; conflicting Azure key/auth settings are rejected.
+
+The source-candidate MCP launches one private official SDK stdio client and one native-tool session. It explicitly constructs a stdio connection even when no CLI path is supplied, so ambient `COPILOT_SDK_DEFAULT_CONNECTION=inprocess` cannot select a shared in-process transport; the SDK still resolves its bundled runtime when the stdio path is omitted. It requires the expected identity to be an existing local OAuth `user`, reads only credential-free active-account metadata, and pins that same host/login/Copilot-user metadata with `session.rpc.gitHubAuth.setCredentials`; the bearer remains in the runtime secret store. It verifies session authentication after the pin and again inside the HTTP bridge before the single permitted image POST. `gh-cli`, environment-token and other auth modes fail closed because this integration will not read their tokens. The SDK bridge necessarily carries the runtime-authorized request headers; this integration does not manually read, export or replace bearer tokens, switch global accounts, accept externally supplied endpoints, or fall back to Azure. The optional CLI path must be absolute; omitting it uses the SDK's bundled runtime rather than a machine-specific cache path. This boundary was exercised successfully in four bounded stock/Agency generation/edit cases on local macOS; the [qualification record](https://github.com/ourostack/image-gen-mcp/tree/feat/copilot-backend/evaluation/copilot-native) defines the exact versions, revisions and exclusions.
+
+`get_capabilities({check_credentials:true})` may start the runtime and verify the expected account without generating an image. That diagnostic alone does not prove image permission, routing, response format or billing; those claims require the separate correlated live evidence. See [Copilot backend](copilot-backend.md).
 
 GUI-launched VS Code may not inherit shell variables or the shell's Azure CLI
 PATH; configure the server's environment explicitly rather than assuming a shell

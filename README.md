@@ -31,6 +31,8 @@ only the live-verified **1536x864, high-quality PNG** combination: one image,
 one concurrent submission, no automatic retries, prompt rewrites or model
 fallback. No exact ChatGPT backend or output parity is claimed.
 
+The current source candidate, not the published `0.1.0` package, also contains an optional experimental native GitHub Copilot backend. Four bounded local macOS cases now qualify generation and selected-reference editing through both a stock directly launched Copilot runtime and an isolated Agency-launched Copilot child; see the [public proof, mixed source revisions and exact boundaries](https://github.com/ourostack/image-gen-mcp/tree/feat/copilot-backend/evaluation/copilot-native). Azure remains the default and retains the live evidence described above. Copilot mode requires an explicit expected OAuth login, executes the native image tool directly through pinned `@github/copilot-sdk@1.0.20` / runtime `1.0.96` without a chat turn, and refuses account, endpoint or backend fallback. The live result does not publish this backend, replace final review or qualify other platforms, plans, authentication modes or persistent/global installation.
+
 | Tool | Purpose |
 | --- | --- |
 | `get_capabilities` | Nonbillable diagnostics; keeps configured, observed and unverified facts separate |
@@ -128,9 +130,7 @@ For an existing compatible deployment:
 Install the pinned release in a persistent directory:
 
 ```sh
-npm install --prefix "$HOME/.local/share/image-gen-mcp" \
-  --registry=https://registry.npmjs.org/ --ignore-scripts --no-audit --no-fund \
-  @juanmicrosoft/image-gen-mcp@0.1.0
+npm install --prefix "$HOME/.local/share/image-gen-mcp" --registry=https://registry.npmjs.org/ --ignore-scripts --no-audit --no-fund @juanmicrosoft/image-gen-mcp@0.1.0
 ```
 
 Or build from source:
@@ -147,6 +147,8 @@ set the inference endpoint/deployment/output directory, and create a private
 client configuration. Pin the package version and never paste a key into
 shell history. The server is a stdio protocol process, not an interactive
 image-generation command.
+
+To evaluate the source-candidate Copilot route instead of Azure, build the intended source revision and use the separate [native Copilot configuration](docs/copilot-backend.md) and [example MCP entry](examples/copilot-native.mcp.json). These files are not present in the already-published `0.1.0` package. The retained qualification intentionally spans revisions: stock generation used `1027224`, while stock edit and both Agency cases used `49e36bf`; the later change was scoped to selected-reference reads and did not alter generation. Do not combine Azure credentials with Copilot mode, assume the parent MCP host's identity is inherited, or treat nonbillable account diagnostics alone as inference proof.
 
 Starting from scratch? Use the separate [owner-tagged Bicep/Azure CLI setup](docs/azure-setup.md).
 The normal MCP never creates resources or retrieves management keys.
