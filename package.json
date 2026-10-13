@@ -14,6 +14,7 @@
     "docs/*.md",
     "docs/evidence/*.md",
     "evaluation/briefs.json",
+    "examples/copilot-native.mcp.json",
     "examples/copilot-cli.mcp.json",
     "examples/vscode.mcp.json",
     "examples/presentation/README.md",
@@ -43,6 +44,7 @@
   },
   "dependencies": {
     "@azure/identity": "4.13.3",
+    "@github/copilot-sdk": "1.0.20",
     "@modelcontextprotocol/sdk": "1.30.0",
     "sharp": "0.35.4",
     "zod": "4.6.5"

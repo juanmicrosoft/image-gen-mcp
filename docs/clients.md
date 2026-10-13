@@ -51,6 +51,32 @@ For the prompt-first CLI-auth path, set `IMAGE_GEN_PREVIEW=false` and unset
 `AZURE_OPENAI_API_KEY` before running the helper. Explicitly add an isolated
 `AZURE_CONFIG_DIR` to the private server `env` if used; the helper does not copy it.
 
+### Experimental native Copilot backend
+
+The Azure helper above does not configure the native Copilot route. Start from
+[the dedicated example](../examples/copilot-native.mcp.json), replace its
+absolute paths/login, and keep it separate from the Azure server entry.
+
+For stock Copilot CLI, either pass the file only to the intended session with
+`--additional-mcp-config @/absolute/copilot-native.mcp.json`, or deliberately
+merge the `image-gen-copilot` entry into private user
+`~/.copilot/mcp-config.json`. The session-local scope is preferred during
+qualification because it does not expose billable image tools to every CLI
+session.
+
+For an Agency-launched Copilot CLI, supply the same MCP entry to that Copilot
+child's session-scoped MCP configuration. Do not install this backend as an
+Agency-wide/global MCP and do not assume Agency Gateway or the parent process
+transfers Copilot authentication. Exact Agency launch propagation remains live
+unverified; the implementation only proves offline SDK wiring.
+
+Both launcher paths start a separate SDK runtime which reads the user's existing
+Copilot sign-in. `IMAGE_GEN_COPILOT_LOGIN` is mandatory and checked twice; the
+server refuses mismatches instead of switching identities. `get_capabilities`
+can verify that account without inference, but cannot establish native image
+availability, model, billing, generation/editing response shape or launcher
+support. See [Copilot backend limitations](copilot-backend.md).
+
 ### Activate in a new process and resume
 
 Generating a session-local file does not inject it into the running agent's

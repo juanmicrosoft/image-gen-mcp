@@ -38,16 +38,26 @@ export function credentialFailure(cause: unknown, signal?: AbortSignal): Credent
   }
   return new CredentialAcquisitionError(reason, cause);
 }
-export interface Configuration {
+interface StorageConfiguration {
+  outputRoot: string;
+  inputRoots: string[];
+  preview: boolean;
+}
+export interface AzureConfiguration extends StorageConfiguration {
+  backend?: "azure";
   endpoint: string;
   deployment: string;
   model: "gpt-image-2.5-sunburst";
-  outputRoot: string;
-  inputRoots: string[];
   authMode: "azure-cli" | "api-key";
-  preview: boolean;
   headers(signal?: AbortSignal): Promise<Record<string, string>>;
 }
+export interface CopilotConfiguration extends StorageConfiguration {
+  backend: "copilot";
+  authMode: "copilot";
+  expectedLogin: string;
+  cliPath?: string;
+}
+export type Configuration = AzureConfiguration | CopilotConfiguration;
 interface CliCredential {
   getToken(scope: string, options?: { abortSignal?: AbortSignal }): Promise<{ token: string } | null>;
 }
@@ -57,6 +67,26 @@ export function loadConfiguration(
   env: NodeJS.ProcessEnv = process.env,
   cliFactory: CliFactory = (tenantId) => new AzureCliCredential(tenantId ? { tenantId } : {}),
 ): Configuration {
+  const backend = env.IMAGE_GEN_BACKEND ?? "azure";
+  if (backend !== "azure" && backend !== "copilot") {
+    throw new ConfigurationError("IMAGE_GEN_BACKEND must be azure or copilot; no automatic fallback is supported.");
+  }
+  if (backend === "copilot") {
+    const login = env.IMAGE_GEN_COPILOT_LOGIN ?? "";
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$/.test(login)) {
+      throw new ConfigurationError("Set IMAGE_GEN_COPILOT_LOGIN to the expected signed-in GitHub account. Account mismatches refuse submission.");
+    }
+    if (env.AZURE_OPENAI_API_KEY || (env.IMAGE_GEN_AUTH !== undefined && env.IMAGE_GEN_AUTH !== "copilot")) {
+      throw new ConfigurationError("Copilot mode cannot use Azure credentials or another IMAGE_GEN_AUTH mode. No credential fallback is supported.");
+    }
+    if (env.IMAGE_GEN_COPILOT_CLI_PATH !== undefined && !isAbsolute(env.IMAGE_GEN_COPILOT_CLI_PATH)) {
+      throw new ConfigurationError("IMAGE_GEN_COPILOT_CLI_PATH must be an absolute runtime path.");
+    }
+    return {
+      ...storageConfiguration(env), backend, authMode: "copilot", expectedLogin: login,
+      ...(env.IMAGE_GEN_COPILOT_CLI_PATH ? { cliPath: env.IMAGE_GEN_COPILOT_CLI_PATH } : {}),
+    };
+  }
   let endpoint: URL;
   try { endpoint = new URL(env.AZURE_OPENAI_ENDPOINT ?? ""); } catch {
     throw new ConfigurationError("Set AZURE_OPENAI_ENDPOINT to the Azure OpenAI inference resource root.");
@@ -73,15 +103,7 @@ export function loadConfiguration(
   if (env.AZURE_OPENAI_IMAGE_MODEL && env.AZURE_OPENAI_IMAGE_MODEL !== "gpt-image-2.5-sunburst") {
     throw new ConfigurationError("Only the configured Sunburst profile is supported. Deployment aliases do not prove model identity.");
   }
-  if (!env.IMAGE_GEN_OUTPUT_DIR || !isAbsolute(env.IMAGE_GEN_OUTPUT_DIR)) {
-    throw new ConfigurationError("Set IMAGE_GEN_OUTPUT_DIR to an explicit absolute private directory.");
-  }
-  let inputRoots: string[];
-  try {
-    inputRoots = z.array(z.string().refine(isAbsolute)).parse(JSON.parse(env.IMAGE_GEN_INPUT_DIRS ?? "[]")).map((path) => resolve(path));
-  } catch {
-    throw new ConfigurationError("IMAGE_GEN_INPUT_DIRS must be a JSON array of absolute approved directories.");
-  }
+  const storage = storageConfiguration(env);
   const mode = env.IMAGE_GEN_AUTH ?? "azure-cli";
   if (mode !== "azure-cli" && mode !== "api-key") throw new ConfigurationError("IMAGE_GEN_AUTH must be azure-cli or api-key.");
   if (mode === "azure-cli" && env.AZURE_OPENAI_API_KEY) {
@@ -97,15 +119,11 @@ export function loadConfiguration(
   if (env.AZURE_TENANT_ID && !z.string().uuid().safeParse(env.AZURE_TENANT_ID).success) {
     throw new ConfigurationError("AZURE_TENANT_ID must be a tenant UUID.");
   }
-  if (env.IMAGE_GEN_PREVIEW !== undefined && !["true", "false"].includes(env.IMAGE_GEN_PREVIEW)) {
-    throw new ConfigurationError("IMAGE_GEN_PREVIEW must be true or false.");
-  }
   const credential = mode === "azure-cli" ? cliFactory(env.AZURE_TENANT_ID) : null;
   return {
     endpoint: endpoint.href, deployment, model: "gpt-image-2.5-sunburst",
-    outputRoot: resolve(env.IMAGE_GEN_OUTPUT_DIR),
-    inputRoots,
-    authMode: mode, preview: env.IMAGE_GEN_PREVIEW !== "false",
+    ...storage,
+    authMode: mode,
     async headers(signal) {
       if (mode === "api-key") return { "api-key": key! };
       try {
@@ -117,4 +135,20 @@ export function loadConfiguration(
       }
     },
   };
+}
+
+function storageConfiguration(env: NodeJS.ProcessEnv): StorageConfiguration {
+  if (!env.IMAGE_GEN_OUTPUT_DIR || !isAbsolute(env.IMAGE_GEN_OUTPUT_DIR)) {
+    throw new ConfigurationError("Set IMAGE_GEN_OUTPUT_DIR to an explicit absolute private directory.");
+  }
+  let inputRoots: string[];
+  try {
+    inputRoots = z.array(z.string().refine(isAbsolute)).parse(JSON.parse(env.IMAGE_GEN_INPUT_DIRS ?? "[]")).map((path) => resolve(path));
+  } catch {
+    throw new ConfigurationError("IMAGE_GEN_INPUT_DIRS must be a JSON array of absolute approved directories.");
+  }
+  if (env.IMAGE_GEN_PREVIEW !== undefined && !["true", "false"].includes(env.IMAGE_GEN_PREVIEW)) {
+    throw new ConfigurationError("IMAGE_GEN_PREVIEW must be true or false.");
+  }
+  return { outputRoot: resolve(env.IMAGE_GEN_OUTPUT_DIR), inputRoots, preview: env.IMAGE_GEN_PREVIEW !== "false" };
 }

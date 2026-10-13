@@ -23,29 +23,42 @@ export class ImageError extends Error {
   }
 }
 
-export function providerError(status: number, providerCode: unknown, requestId?: string | null): ImageError {
+export function providerError(
+  status: number,
+  providerCode: unknown,
+  requestId?: string | null,
+  provider = "Azure",
+): ImageError {
   const code = typeof providerCode === "string" ? providerCode.toLowerCase() : "";
   if (["contentfilter", "content_filter", "content_policy_violation", "responsibleaipolicyviolation"].includes(code)) {
-    return new ImageError("policy", "Azure rejected this content. No rewrite, fallback or retry was attempted.", true, requestId);
+    return new ImageError("policy", `${provider} rejected this content. No rewrite, fallback or retry was attempted.`, true, requestId);
   }
   if (status === 403 || code === "permissiondenied") {
-    return new ImageError("permission", "Inference permission denied. Check tenant and resource-scoped inference role; management access is not sufficient.", true, requestId);
+    return new ImageError("permission", provider === "Azure"
+      ? "Inference permission denied. Check tenant and resource-scoped inference role; management access is not sufficient."
+      : "Copilot image permission denied. Check the expected account, plan and policy; no alternate identity or backend was attempted.", true, requestId);
   }
-  if (status === 401) return new ImageError("authentication", "Authentication failed. Check the explicitly selected credential and tenant.", true, requestId);
-  if (status === 404) return new ImageError("deployment", "Inference endpoint or deployment was not found. Verify both configuration values.", true, requestId);
+  if (status === 401) return new ImageError("authentication", provider === "Azure"
+    ? "Authentication failed. Check the explicitly selected credential and tenant."
+    : "Copilot authentication failed. Verify the expected signed-in account; no credential fallback was attempted.", true, requestId);
+  if (status === 404) return new ImageError("deployment", provider === "Azure"
+    ? "Inference endpoint or deployment was not found. Verify both configuration values."
+    : "Copilot native image service was not found for this runtime/account. No alternate endpoint was attempted.", true, requestId);
   if (status === 429) {
     return new ImageError(code.includes("quota") ? "quota" : "throttled",
-      "Azure declined this request due to quota or throttling. Inspect limits before explicitly choosing a new operation ID; no automatic retry.", true, requestId);
+      `${provider} declined this request due to quota or throttling. Inspect limits before explicitly choosing a new operation ID; no automatic retry.`, true, requestId);
   }
-  if (status === 400 || status === 422) return new ImageError("invalid_input", "Azure rejected the options or input. Check the configured model capability profile.", true, requestId);
-  return new ImageError("service", "Azure service failure; completion and billing may be unknown. Inspect operation status before taking further action.", false, requestId);
+  if (status === 400 || status === 422) return new ImageError("invalid_input",
+    `${provider} rejected the options or input. Check the selected backend capability profile.`, true, requestId);
+  return new ImageError("service",
+    `${provider} service failure; completion and billing may be unknown. Inspect operation status before taking further action.`, false, requestId);
 }
 
-export function normalizeError(error: unknown): ImageError {
+export function normalizeError(error: unknown, provider = "Azure"): ImageError {
   if (error instanceof ImageError) return error;
   if (error instanceof z.ZodError) return new ImageError("invalid_input", "Invalid tool arguments or configuration.", true);
   if (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name)) {
-    return new ImageError("timeout", "Request interrupted. Azure may still be processing or billing it. Inspect the existing operation; do not resubmit automatically.");
+    return new ImageError("timeout", `Request interrupted. ${provider} may still be processing or billing it. Inspect the existing operation; do not resubmit automatically.`);
   }
   const transportCodes = new Set(["ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN",
     "ENETUNREACH", "EHOSTUNREACH", "ETIMEDOUT", "UND_ERR_SOCKET", "UND_ERR_CONNECT_TIMEOUT"]);
@@ -91,11 +104,12 @@ export const usageSchema = z.object({
   input_tokens: z.number().int().nonnegative().optional(),
   output_tokens: z.number().int().nonnegative().optional(),
   total_tokens: z.number().int().nonnegative().optional(),
+  ai_credits: z.number().nonnegative().optional(),
 });
 export type Usage = z.infer<typeof usageSchema> | null;
-export function parseUsage(value: unknown): Usage {
+export function parseUsage(value: unknown, provider = "Azure"): Usage {
   if (value === undefined || value === null) return null;
   const result = usageSchema.safeParse(value);
-  if (!result.success) throw new ImageError("provider_output", "Azure returned invalid usage metadata; the request may already have incurred charges.");
+  if (!result.success) throw new ImageError("provider_output", `${provider} returned invalid usage metadata; the request may already have incurred charges.`);
   return Object.keys(result.data).length ? result.data : null;
 }

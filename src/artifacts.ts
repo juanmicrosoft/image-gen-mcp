@@ -10,16 +10,27 @@ export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const MAX_PIXELS = 8_294_400;
 const identifier = z.string().uuid();
 const metadataSchema = z.object({
-  deployment: z.string().min(1).max(128),
-  model: z.literal("gpt-image-2.5-sunburst"),
-  modelEvidence: z.enum(["configured", "observed"]),
+  backend: z.enum(["azure", "copilot"]).optional(),
+  deployment: z.string().min(1).max(128).optional(),
+  model: z.string().min(1).max(128),
+  modelEvidence: z.enum(["configured", "observed", "unverified"]),
+  authLogin: z.string().min(1).max(39).optional(),
   size: z.string().regex(/^\d+x\d+$/),
   quality: z.enum(["low", "medium", "high", "xhigh", "max", "auto"]),
   sourceArtifactId: identifier.optional(),
   sourceHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   requestId: z.string().regex(/^[\w.-]{1,128}$/).optional(),
   usage: usageSchema.nullable().optional(),
-}).strict();
+}).strict().superRefine((value, ctx) => {
+  if (value.backend === "copilot") {
+    if (!value.authLogin || value.deployment !== undefined || value.modelEvidence === "configured") {
+      ctx.addIssue({ code: "custom", message: "Copilot metadata must name its account, not an Azure deployment or configured model." });
+    }
+  } else if (!value.deployment || value.model !== "gpt-image-2.5-sunburst" ||
+             value.modelEvidence === "unverified" || value.authLogin !== undefined) {
+    ctx.addIssue({ code: "custom", message: "Invalid Azure artifact metadata." });
+  }
+});
 export type ArtifactMetadata = z.infer<typeof metadataSchema>;
 const manifestSchema = z.object({
   version: z.literal(1),

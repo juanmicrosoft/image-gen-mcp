@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "image-gen-copilot": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/image-gen-mcp/dist/cli.js"],
+      "env": {
+        "IMAGE_GEN_BACKEND": "copilot",
+        "IMAGE_GEN_COPILOT_LOGIN": "YOUR-GITHUB-LOGIN",
+        "IMAGE_GEN_OUTPUT_DIR": "/ABSOLUTE/PRIVATE/OUTPUT/DIRECTORY",
+        "IMAGE_GEN_PREVIEW": "false"
+      },
+      "tools": ["*"],
+      "timeout": 240000
+    }
+  }
+}

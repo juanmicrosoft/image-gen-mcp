@@ -31,6 +31,15 @@ only the live-verified **1536x864, high-quality PNG** combination: one image,
 one concurrent submission, no automatic retries, prompt rewrites or model
 fallback. No exact ChatGPT backend or output parity is claimed.
 
+An optional experimental native GitHub Copilot backend is also implemented.
+It is **offline-tested only**: no stock or Agency-launched Copilot image request
+has yet qualified its service response, billing metadata, editing behavior or
+launcher integration. Azure remains the default and retains the live evidence
+described above. Copilot mode requires an explicit expected GitHub login,
+executes the native image tool directly through the pinned official SDK without
+a chat turn, and refuses account, endpoint or backend fallback. See
+[the Copilot backend guide](docs/copilot-backend.md) before enabling it.
+
 | Tool | Purpose |
 | --- | --- |
 | `get_capabilities` | Nonbillable diagnostics; keeps configured, observed and unverified facts separate |
@@ -128,9 +137,7 @@ For an existing compatible deployment:
 Install the pinned release in a persistent directory:
 
 ```sh
-npm install --prefix "$HOME/.local/share/image-gen-mcp" \
-  --registry=https://registry.npmjs.org/ --ignore-scripts --no-audit --no-fund \
-  @juanmicrosoft/image-gen-mcp@0.1.0
+npm install --prefix "$HOME/.local/share/image-gen-mcp" --registry=https://registry.npmjs.org/ --ignore-scripts --no-audit --no-fund @juanmicrosoft/image-gen-mcp@0.1.0
 ```
 
 Or build from source:
@@ -147,6 +154,12 @@ set the inference endpoint/deployment/output directory, and create a private
 client configuration. Pin the package version and never paste a key into
 shell history. The server is a stdio protocol process, not an interactive
 image-generation command.
+
+To evaluate the offline-qualified Copilot route instead of Azure, use the
+separate [native Copilot configuration](docs/copilot-backend.md) and
+[example MCP entry](examples/copilot-native.mcp.json). Do not combine Azure
+credentials with Copilot mode, assume the parent MCP host's identity is
+inherited, or treat nonbillable account diagnostics as inference proof.
 
 Starting from scratch? Use the separate [owner-tagged Bicep/Azure CLI setup](docs/azure-setup.md).
 The normal MCP never creates resources or retrieves management keys.
