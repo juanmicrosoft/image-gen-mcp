@@ -53,27 +53,13 @@ For the prompt-first CLI-auth path, set `IMAGE_GEN_PREVIEW=false` and unset
 
 ### Source-candidate native Copilot backend
 
-The already-published `0.1.0` package does not contain the native Copilot route. After the source candidate's review gate clears, build this branch/source checkout, start from [the dedicated example](../examples/copilot-native.mcp.json), replace its absolute paths/login, and keep it separate from the Azure server entry.
+The already-published `0.1.0` package does not contain the native Copilot route. Build the intended source revision, start from [the dedicated example](../examples/copilot-native.mcp.json), replace its absolute paths/login, and keep it separate from the Azure server entry. The [bounded qualification record](https://github.com/ourostack/image-gen-mcp/tree/feat/copilot-backend/evaluation/copilot-native) covers only the listed source revisions, local macOS OAuth-user/Enterprise-plan environment and isolated launchers.
 
-For stock Copilot CLI, either pass the file only to the intended session with
-`--additional-mcp-config @/absolute/copilot-native.mcp.json`, or deliberately
-merge the `image-gen-copilot` entry into private user
-`~/.copilot/mcp-config.json`. The session-local scope is preferred during
-qualification because it does not expose billable image tools to every CLI
-session.
+The qualified stock path invoked the Copilot runtime directly with only the session-scoped native MCP configuration and exact MCP grants. Pass the file only to the intended session with `--additional-mcp-config @/absolute/copilot-native.mcp.json`. Merging the entry into private user `~/.copilot/mcp-config.json` is technically possible but was not qualified and exposes billable image tools to every CLI session.
 
-For an Agency-launched Copilot CLI, supply the same MCP entry to that Copilot
-child's session-scoped MCP configuration. Do not install this backend as an
-Agency-wide/global MCP and do not assume Agency Gateway or the parent process
-transfers Copilot authentication. Exact Agency launch propagation remains live
-unverified; the implementation only proves offline SDK wiring.
+The qualified Agency path used Agency `2026.10.12.4` with `--no-aec --no-default-mcps --no-config-plugins`; its Copilot child used `--no-custom-instructions --disable-builtin-mcps --available-tools mcp:*`, the same session-scoped MCP configuration and exact MCP grants. Do not install this backend as an Agency-wide/global MCP and do not assume Agency Gateway or the parent process transfers Copilot authentication.
 
-Both launcher paths start a separate SDK runtime which reads the user's existing
-Copilot sign-in. `IMAGE_GEN_COPILOT_LOGIN` is mandatory and checked twice; the
-server refuses mismatches instead of switching identities. `get_capabilities`
-can verify that account without inference, but cannot establish native image
-availability, model, billing, generation/editing response shape or launcher
-support. See [Copilot backend limitations](copilot-backend.md).
+Both qualified launcher paths started a separate private stdio SDK runtime using the existing local OAuth sign-in. `IMAGE_GEN_COPILOT_LOGIN` is mandatory and the server pins and rechecks the session identity instead of switching accounts. Live generation and editing established native image availability, the observed Sunburst model, response shape and service-reported image credits for the exact tested configurations. `get_capabilities` remains nonbillable and does not establish those facts by itself. See [Copilot backend evidence and limitations](copilot-backend.md).
 
 ### Activate in a new process and resume
 
