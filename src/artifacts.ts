@@ -15,6 +15,8 @@ const metadataSchema = z.object({
   model: z.string().min(1).max(128),
   modelEvidence: z.enum(["configured", "observed", "unverified"]),
   authLogin: z.string().min(1).max(39).optional(),
+  authSource: z.literal("user").optional(),
+  copilotPlan: z.string().min(1).max(128).optional(),
   size: z.string().regex(/^\d+x\d+$/),
   quality: z.enum(["low", "medium", "high", "xhigh", "max", "auto"]),
   sourceArtifactId: identifier.optional(),
@@ -27,7 +29,8 @@ const metadataSchema = z.object({
       ctx.addIssue({ code: "custom", message: "Copilot metadata must name its account, not an Azure deployment or configured model." });
     }
   } else if (!value.deployment || value.model !== "gpt-image-2.5-sunburst" ||
-             value.modelEvidence === "unverified" || value.authLogin !== undefined) {
+             value.modelEvidence === "unverified" || value.authLogin !== undefined ||
+             value.authSource !== undefined || value.copilotPlan !== undefined) {
     ctx.addIssue({ code: "custom", message: "Invalid Azure artifact metadata." });
   }
 });

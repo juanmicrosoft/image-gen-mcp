@@ -59,7 +59,9 @@ export function imageTools(
     if (config.backend === "copilot" && "size" in result) {
       return {
         backend: "copilot", model: result.model, modelEvidence: result.modelEvidence,
-        authLogin: config.expectedLogin, size: result.size, quality: result.quality, usage: result.usage,
+        authLogin: config.expectedLogin, authSource: result.authSource,
+        size: result.size, quality: result.quality, usage: result.usage,
+        ...(result.copilotPlan ? { copilotPlan: result.copilotPlan } : {}),
         ...(result.requestId ? { requestId: result.requestId } : {}),
       };
     }

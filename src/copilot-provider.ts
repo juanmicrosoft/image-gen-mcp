@@ -35,6 +35,14 @@ export interface CopilotImageResult {
   modelEvidence: "observed" | "unverified";
   requestId: string | null;
   usage: Usage;
+  authSource: "user";
+  copilotPlan?: string;
+}
+export interface CopilotIdentity {
+  login: string;
+  host: string;
+  authSource: "user";
+  copilotPlan?: string;
 }
 
 async function withAbort<T>(promise: Promise<T>, signal: AbortSignal, onAbort?: () => Promise<unknown>): Promise<T> {
@@ -53,13 +61,60 @@ async function withAbort<T>(promise: Promise<T>, signal: AbortSignal, onAbort?: 
   }
 }
 
-async function checkIdentity(client: Client, config: CopilotConfiguration, signal: AbortSignal): Promise<string> {
+async function checkIdentity(
+  client: Client,
+  config: CopilotConfiguration,
+  signal: AbortSignal,
+): Promise<{ login: string; host: string }> {
   const auth = await withAbort(client.getAuthStatus(), signal);
   signal.throwIfAborted();
-  if (!auth.isAuthenticated || auth.login?.toLowerCase() !== config.expectedLogin.toLowerCase()) {
-    throw new ImageError("authentication", "Copilot is not signed in to IMAGE_GEN_COPILOT_LOGIN. Select the intended account yourself; no account switch or alternate credential was attempted.", true);
+  if (!auth.isAuthenticated || auth.authType !== "user" || !auth.host ||
+      auth.login?.toLowerCase() !== config.expectedLogin.toLowerCase()) {
+    throw new ImageError("authentication", "Copilot must be signed in with the expected local OAuth user. CLI/environment token modes cannot be pinned without exposing credentials, so no image request was attempted.", true);
   }
-  return auth.login;
+  return { login: auth.login, host: auth.host };
+}
+
+async function checkSessionIdentity(
+  session: Awaited<ReturnType<Client["createSession"]>>,
+  config: CopilotConfiguration,
+  expectedHost: string,
+  signal: AbortSignal,
+): Promise<CopilotIdentity> {
+  const auth = await withAbort(session.rpc.gitHubAuth.getStatus(), signal, () => session.abort());
+  signal.throwIfAborted();
+  if (!auth.isAuthenticated || auth.authType !== "user" || auth.host !== expectedHost ||
+      auth.login?.toLowerCase() !== config.expectedLogin.toLowerCase()) {
+    throw new ImageError("authentication", "The isolated Copilot session is not pinned to the expected local OAuth user. No image request was forwarded and no account switch was attempted.", true);
+  }
+  const plan = z.string().min(1).max(128).safeParse(auth.copilotPlan);
+  return {
+    login: auth.login, host: auth.host, authSource: "user",
+    ...(plan.success ? { copilotPlan: plan.data } : {}),
+  };
+}
+
+async function pinSessionIdentity(
+  session: Awaited<ReturnType<Client["createSession"]>>,
+  config: CopilotConfiguration,
+  expectedHost: string,
+  signal: AbortSignal,
+): Promise<CopilotIdentity> {
+  const active = await withAbort(session.rpc.accounts.get({ query: { kind: "activeAccount" } }), signal, () => session.abort());
+  const auth = active.kind === "activeAccount" ? active.authInfo : undefined;
+  if (auth?.type !== "user" || auth.host !== expectedHost || !auth.copilotUser ||
+      auth.login?.toLowerCase() !== config.expectedLogin.toLowerCase()) {
+    throw new ImageError("authentication", "Copilot's active session identity cannot be pinned as the expected local OAuth user without reading a token. No image request was attempted.", true);
+  }
+  const pinned = await withAbort(session.rpc.gitHubAuth.setCredentials({
+    credentials: {
+      type: "user", host: auth.host, login: auth.login, copilotUser: auth.copilotUser,
+    },
+  }), signal, () => session.abort());
+  if (!pinned.success || pinned.copilotUserResolved !== true) {
+    throw new ImageError("authentication", "Copilot did not confirm the credential-free session identity pin. No image request was attempted.", true);
+  }
+  return checkSessionIdentity(session, config, expectedHost, signal);
 }
 
 function clientOptions(config: CopilotConfiguration): CopilotClientOptions {
@@ -71,19 +126,35 @@ function clientOptions(config: CopilotConfiguration): CopilotClientOptions {
 
 export async function checkCopilotIdentity(
   config: CopilotConfiguration, signal: AbortSignal, factory: CopilotClientFactory = createClient,
-): Promise<string> {
+): Promise<CopilotIdentity> {
+  const deadline = AbortSignal.any([signal, AbortSignal.timeout(30_000)]);
   const client = factory(clientOptions(config));
   let failure: unknown;
-  let login: string | undefined;
+  let identity: CopilotIdentity | undefined;
+  let session: Awaited<ReturnType<Client["createSession"]>> | undefined;
   try {
-    await withAbort(client.start(), signal);
-    login = await checkIdentity(client, config, signal);
+    await withAbort(client.start(), deadline);
+    const expected = await checkIdentity(client, config, deadline);
+    session = await withAbort(client.createSession({
+      availableTools: [], enableConfigDiscovery: false, enableSkills: false,
+      enableSessionStore: false, skipCustomInstructions: true, enableSessionTelemetry: false,
+      mcpServers: {}, onPermissionRequest: () => ({ kind: "denied-interactively-by-user" }),
+    }), deadline);
+    identity = await pinSessionIdentity(session, config, expected.host, deadline);
   } catch (error) {
     failure = error instanceof ImageError ? error :
       new ImageError("authentication", "Copilot runtime or authentication could not be checked. Verify the installed runtime and intended account; no inference was requested.", true);
   } finally {
+    if (session) {
+      try { await withAbort(session.disconnect(), deadline); } catch {
+        if (!failure) failure = new ImageError("internal", "Copilot diagnostic session did not stop cleanly.", true);
+      }
+      try { await withAbort(client.deleteSession(session.sessionId), deadline); } catch {
+        if (!failure) failure = new ImageError("internal", "Copilot diagnostic session did not stop cleanly.", true);
+      }
+    }
     try {
-      if ((await client.stop()).length && !failure) {
+      if ((await withAbort(client.stop(), deadline)).length && !failure) {
         failure = new ImageError("internal", "Copilot diagnostic runtime did not stop cleanly.", true);
       }
     } catch {
@@ -91,7 +162,7 @@ export async function checkCopilotIdentity(
     }
   }
   if (failure) throw failure;
-  return login!;
+  return identity!;
 }
 
 export async function requestCopilotImage(
@@ -106,6 +177,9 @@ export async function requestCopilotImage(
   let result: CopilotImageResult | undefined;
   let failure: unknown;
   let submitted = false;
+  let invocationActive = false;
+  let sessionIdentity: CopilotIdentity | undefined;
+  let expectedHost: string | undefined;
   const route = source ? "/v1/images/edits" : "/v1/images/generations";
   class OneImageRequest extends CopilotRequestHandler {
     override async sendRequest(request: Request, context: CopilotRequestContext): Promise<Response> {
@@ -113,20 +187,32 @@ export async function requestCopilotImage(
         const url = new URL(request.url);
         const requestSignal = AbortSignal.any([deadline, context.signal]);
         requestSignal.throwIfAborted();
+        if (!session || (context.sessionId !== undefined && context.sessionId !== session.sessionId)) {
+          throw new ImageError("authentication", "Copilot request identity belongs to another session; no request was forwarded.", true);
+        }
         if (!copilotApiOrigins.has(url.origin)) {
           throw new ImageError("permission", "Copilot requested an unexpected service origin; no request was forwarded.", !submitted);
         }
+        if (url.username || url.password || url.search || url.hash) {
+          throw new ImageError("permission", "Copilot requested credentials, query parameters or a fragment outside the reviewed native route; no request was forwarded.", !submitted);
+        }
         if (request.method === "GET" && url.pathname === "/models") {
+          if (!expectedHost) throw new ImageError("authentication", "Copilot session identity was not established.", true);
+          sessionIdentity = await checkSessionIdentity(session, config, expectedHost, requestSignal);
           return await fetcher(request, { signal: requestSignal, redirect: "error" });
         }
         if (request.method !== "POST" || url.pathname !== route || submitted) {
           throw new ImageError("permission", "Only one native image request is permitted. Chat inference, automatic retries and other endpoints are blocked.", !submitted);
         }
-        await checkIdentity(client, config, requestSignal);
+        if (!invocationActive) {
+          throw new ImageError("authentication", "Copilot image transport was invoked outside the owned native-tool execution; no request was forwarded.", true);
+        }
+        if (!expectedHost) throw new ImageError("authentication", "Copilot session identity was not established.", true);
+        sessionIdentity = await checkSessionIdentity(session, config, expectedHost, requestSignal);
         requestSignal.throwIfAborted();
         submitted = true;
         const response = await fetcher(request, { signal: requestSignal, redirect: "error" });
-        const raw = await readResponse(response, "Copilot");
+        const raw = await readResponse(response, "Copilot", requestSignal);
         const requestId = response.headers.get("x-request-id");
         if (!response.ok) {
           const providerCode = z.object({ error: z.object({ code: z.string().optional() }) }).safeParse(raw);
@@ -142,7 +228,7 @@ export async function requestCopilotImage(
         const bytes = Buffer.from(encoded, "base64");
         if (bytes.toString("base64") !== encoded) throw new ImageError("provider_output", "Copilot returned invalid image encoding; charges may apply.");
         let dimensions;
-        try { dimensions = await validatePng(bytes); } catch {
+        try { dimensions = await withAbort(validatePng(bytes), requestSignal); } catch {
           throw new ImageError("provider_output", "Copilot returned an invalid PNG; charges may apply.");
         }
         const size = `${dimensions.width}x${dimensions.height}`;
@@ -159,6 +245,8 @@ export async function requestCopilotImage(
           modelEvidence: models.length === 1 ? "observed" : "unverified",
           requestId: requestId && /^[\w.-]{1,128}$/.test(requestId) ? requestId : null,
           usage: nano === undefined ? usage : { ...usage, ai_credits: nano / 1e9 },
+          authSource: "user",
+          ...(sessionIdentity?.copilotPlan ? { copilotPlan: sessionIdentity.copilotPlan } : {}),
         };
         return Response.json(raw, { status: response.status });
       } catch (error) {
@@ -181,9 +269,9 @@ export async function requestCopilotImage(
     if (!version || version[0]! < 1 || (version[0] === 1 && version[1] === 0 && version[2]! < 96)) {
       throw new ImageError("invalid_input", "Copilot runtime 1.0.96 or newer is required for this experimental image backend.", true);
     }
-    await checkIdentity(client, config, deadline);
+    expectedHost = (await checkIdentity(client, config, deadline)).host;
     if (source) {
-      await validatePng(source);
+      await withAbort(validatePng(source), deadline);
       temporary = await mkdtemp(join(config.outputRoot, ".copilot-reference-"));
       reference = join(temporary, "reference.png");
       await writeFile(reference, source, { mode: 0o600, flag: "wx" });
@@ -200,21 +288,28 @@ export async function requestCopilotImage(
         return { kind: allow ? "approved" : "denied-interactively-by-user" };
       },
     }), deadline);
+    sessionIdentity = await pinSessionIdentity(session, config, expectedHost, deadline);
     await withAbort(session.rpc.tools.initializeAndValidate(), deadline);
     deadline.throwIfAborted();
     const metadata = await withAbort(session.rpc.tools.getCurrentMetadata(), deadline);
     if (!metadata.tools?.some(tool => tool.name === "image_generation")) {
       throw new ImageError("permission", "Native image generation is unavailable for this runtime/account/policy. No alternate backend was attempted.", true);
     }
-    const toolResult = await withAbort(session.rpc.tools.execute({
-      name: "image_generation",
-      arguments: {
-        prompt: input.prompt,
-        ...(input.size !== "auto" ? { size: input.size } : {}),
-        ...(input.quality !== "auto" ? { quality: input.quality } : {}),
-        ...(reference ? { input_images: [{ path: reference }] } : {}),
-      },
-    }), deadline, () => session!.abort());
+    let toolResult;
+    invocationActive = true;
+    try {
+      toolResult = await withAbort(session.rpc.tools.execute({
+        name: "image_generation",
+        arguments: {
+          prompt: input.prompt,
+          ...(input.size !== "auto" ? { size: input.size } : {}),
+          ...(input.quality !== "auto" ? { quality: input.quality } : {}),
+          ...(reference ? { input_images: [{ path: reference }] } : {}),
+        },
+      }), deadline, () => session!.abort());
+    } finally {
+      invocationActive = false;
+    }
     if (failure) throw failure;
     if (typeof toolResult === "string" || toolResult.resultType !== "success" || !result) {
       throw new ImageError("provider_output", "Native Copilot image tool did not return a verified successful image. Inspect the operation; no retry was attempted.", !submitted);
@@ -236,18 +331,20 @@ export async function requestCopilotImage(
     const cleanup: Promise<unknown>[] = [];
     if (session) {
       cleanup.push((async () => {
-        try { await session.disconnect(); } finally { await client.deleteSession(session.sessionId); }
+        const disconnected = await Promise.allSettled([withAbort(session.disconnect(), deadline)]);
+        const deleted = await Promise.allSettled([withAbort(client.deleteSession(session.sessionId), deadline)]);
+        if ([...disconnected, ...deleted].some(item => item.status === "rejected")) throw new Error("session cleanup");
       })());
     }
-    if (reference) cleanup.push(unlink(reference));
+    if (reference) cleanup.push(withAbort(unlink(reference), deadline));
     const settled = await Promise.allSettled(cleanup);
     if (temporary) {
-      try { await rmdir(temporary); } catch {
+      try { await withAbort(rmdir(temporary), deadline); } catch {
         settled.push({ status: "rejected", reason: "reference cleanup" });
       }
     }
     let stopFailed = false;
-    try { stopFailed = (await client.stop()).length > 0; } catch { stopFailed = true; }
+    try { stopFailed = (await withAbort(client.stop(), deadline)).length > 0; } catch { stopFailed = true; }
     if ((stopFailed || settled.some(item => item.status === "rejected")) && !failure) {
       failure = new ImageError("internal", "Copilot runtime or temporary-file cleanup failed. Inspect the retained operation; no retry was attempted.", !submitted);
     }

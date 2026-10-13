@@ -31,14 +31,7 @@ only the live-verified **1536x864, high-quality PNG** combination: one image,
 one concurrent submission, no automatic retries, prompt rewrites or model
 fallback. No exact ChatGPT backend or output parity is claimed.
 
-An optional experimental native GitHub Copilot backend is also implemented.
-It is **offline-tested only**: no stock or Agency-launched Copilot image request
-has yet qualified its service response, billing metadata, editing behavior or
-launcher integration. Azure remains the default and retains the live evidence
-described above. Copilot mode requires an explicit expected GitHub login,
-executes the native image tool directly through the pinned official SDK without
-a chat turn, and refuses account, endpoint or backend fallback. See
-[the Copilot backend guide](docs/copilot-backend.md) before enabling it.
+The current source candidate, not the published `0.1.0` package, also contains an optional experimental native GitHub Copilot backend. It is **offline-tested only** and blocked from paid qualification pending fresh review: no stock or Agency-launched Copilot image request has qualified its service response, billing metadata, editing behavior or launcher integration. Azure remains the default and retains the live evidence described above. Copilot mode requires an explicit expected GitHub login, executes the native image tool directly through the pinned official SDK without a chat turn, and refuses account, endpoint or backend fallback. See [the Copilot backend guide](docs/copilot-backend.md) before evaluating this source candidate.
 
 | Tool | Purpose |
 | --- | --- |
@@ -155,11 +148,7 @@ client configuration. Pin the package version and never paste a key into
 shell history. The server is a stdio protocol process, not an interactive
 image-generation command.
 
-To evaluate the offline-qualified Copilot route instead of Azure, use the
-separate [native Copilot configuration](docs/copilot-backend.md) and
-[example MCP entry](examples/copilot-native.mcp.json). Do not combine Azure
-credentials with Copilot mode, assume the parent MCP host's identity is
-inherited, or treat nonbillable account diagnostics as inference proof.
+To evaluate the source-candidate Copilot route instead of Azure after its review gate clears, build this branch/source checkout and use the separate [native Copilot configuration](docs/copilot-backend.md) and [example MCP entry](examples/copilot-native.mcp.json). These files are not present in the already-published `0.1.0` package. Do not combine Azure credentials with Copilot mode, assume the parent MCP host's identity is inherited, or treat nonbillable account diagnostics as inference proof.
 
 Starting from scratch? Use the separate [owner-tagged Bicep/Azure CLI setup](docs/azure-setup.md).
 The normal MCP never creates resources or retrieves management keys.

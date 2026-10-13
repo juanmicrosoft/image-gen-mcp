@@ -16,7 +16,7 @@ async function setup(t, preview = false) {
   t.after(() => rm(root, { recursive: true, force: true }));
   const env = { IMAGE_GEN_BACKEND: "copilot", IMAGE_GEN_COPILOT_LOGIN: "fixture-user",
     IMAGE_GEN_OUTPUT_DIR: root, IMAGE_GEN_PREVIEW: String(preview) };
-  const state = { requests: 0 };
+  const state = { requests: 0, pins: 0 };
   const fetcher = async () => {
     state.requests++;
     return Response.json({ data: [{ b64_json: png.toString("base64") }], size: "1312x1199", quality: "low",
@@ -26,22 +26,43 @@ async function setup(t, preview = false) {
   const factory = options => ({
     start: async () => {}, stop: async () => [], deleteSession: async () => {},
     getStatus: async () => ({ version: "1.0.96", protocolVersion: 3 }),
-    getAuthStatus: async () => ({ isAuthenticated: true, login: "fixture-user" }),
+    getAuthStatus: async () => ({
+      isAuthenticated: true, authType: "user", host: "https://github.com", login: "fixture-user",
+    }),
     createSession: async sessionOptions => ({
-      sessionId: "fixture", disconnect: async () => {},
-      rpc: { tools: {
-        initializeAndValidate: async () => {},
-        getCurrentMetadata: async () => ({ tools: [{ name: "image_generation" }] }),
-        execute: async ({ arguments: args }) => {
-          state.lastArguments = args;
-          assert.equal((await sessionOptions.onPermissionRequest({ kind: "custom-tool", toolName: "image_generation" })).kind, "approved");
-          const url = `https://api.githubcopilot.com/v1/images/${args.input_images ? "edits" : "generations"}`;
-          const response = await options.requestHandler.sendRequest(new Request(url, { method: "POST", body: "{}" }),
-            { signal, transport: "http", requestId: "fixture-request", url });
-          await response.text();
-          return { resultType: "success", textResultForLlm: "Generated" };
+      sessionId: "fixture", disconnect: async () => {}, abort: async () => {},
+      rpc: {
+        accounts: { get: async () => ({
+          kind: "activeAccount",
+          authInfo: {
+            type: "user", host: "https://github.com", login: "fixture-user",
+            copilotUser: {
+              analytics_tracking_id: "fixture", chat_enabled: true, copilot_plan: "enterprise",
+              endpoints: { api: "https://api.enterprise.githubcopilot.com" }, login: "fixture-user",
+            },
+          },
+        }) },
+        gitHubAuth: {
+          setCredentials: async () => { state.pins++; return { success: true, copilotUserResolved: true }; },
+          getStatus: async () => ({
+            isAuthenticated: true, authType: "user", host: "https://github.com",
+            login: "fixture-user", copilotPlan: "enterprise",
+          }),
         },
-      } },
+        tools: {
+          initializeAndValidate: async () => {},
+          getCurrentMetadata: async () => ({ tools: [{ name: "image_generation" }] }),
+          execute: async ({ arguments: args }) => {
+            state.lastArguments = args;
+            assert.equal((await sessionOptions.onPermissionRequest({ kind: "custom-tool", toolName: "image_generation" })).kind, "approved");
+            const url = `https://api.githubcopilot.com/v1/images/${args.input_images ? "edits" : "generations"}`;
+            const response = await options.requestHandler.sendRequest(new Request(url, { method: "POST", body: "{}" }),
+              { signal, transport: "http", requestId: "fixture-request", url });
+            await response.text();
+            return { resultType: "success", textResultForLlm: "Generated" };
+          },
+        },
+      },
     }),
   });
   const load = () => loadConfiguration(env);
@@ -60,6 +81,8 @@ test("Copilot MCP advertises native options, persists actual dimensions and reco
   assert.equal(result.structuredContent.artifact.metadata.backend, "copilot");
   assert.equal(result.structuredContent.artifact.metadata.deployment, undefined);
   assert.equal(result.structuredContent.artifact.metadata.authLogin, "fixture-user");
+  assert.equal(result.structuredContent.artifact.metadata.authSource, "user");
+  assert.equal(result.structuredContent.artifact.metadata.copilotPlan, "enterprise");
   assert.equal(result.structuredContent.artifact.metadata.usage.ai_credits, 0.661);
   assert.ok(result.content.some(content => content.type === "image"));
   const restart = imageTools(load, fetcher, factory, "copilot");
@@ -104,6 +127,9 @@ test("Copilot diagnostics are nonbillable and identity checks never advertise ve
   assert.equal(checked.structuredContent.checks.credentialAcquisition.status, "passed");
   assert.equal(checked.structuredContent.checks.inference.status, "unverified");
   assert.equal(checked.structuredContent.authIdentity.expectedLogin, "fixture-user");
+  assert.equal(checked.structuredContent.authIdentity.authSource, "user");
+  assert.equal(checked.structuredContent.authIdentity.copilotPlan, "enterprise");
+  assert.equal(state.pins, 1);
   assert.equal(state.requests, 0);
 });
 

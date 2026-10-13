@@ -23,7 +23,10 @@ const responseBody = {
 };
 
 export function fixture(options = {}) {
-  const state = { creates: 0, executions: 0, gets: 0, posts: 0, stopped: 0, deleted: 0, disconnected: 0, aborted: 0 };
+  const state = {
+    creates: 0, executions: 0, gets: 0, posts: 0, stopped: 0, deleted: 0,
+    disconnected: 0, aborted: 0, sessionChecks: 0, pins: 0,
+  };
   const fetcher = async (request, init) => {
     if (request.method === "POST") state.posts++;
     if (request.method === "GET") state.gets++;
@@ -36,20 +39,25 @@ export function fixture(options = {}) {
   };
   const factory = (clientOptions) => {
     let checks = 0;
+    state.requestHandler = clientOptions.requestHandler;
     return {
       start: async () => {},
       getStatus: async () => ({ version: options.version ?? "1.0.96", protocolVersion: 3 }),
       getAuthStatus: async () => ({
         isAuthenticated: options.authenticated ?? true,
+        authType: options.globalAuthType ?? "user",
+        host: options.globalHost ?? "https://github.com",
         login: options.changedAccount && checks++ > 0 ? "other-user" : (options.login ?? "fixture-user"),
       }),
       stop: async () => {
         state.stopped++;
+        if (options.stopNever) return new Promise(() => {});
         if (options.stopThrows) throw new Error("private-stop-error");
         return options.cleanupErrors ?? [];
       },
       deleteSession: async () => {
         state.deleted++;
+        if (options.deleteNever) return new Promise(() => {});
         if (options.deleteError) throw new Error("private-delete-error");
       },
       createSession: async (sessionOptions) => {
@@ -60,39 +68,81 @@ export function fixture(options = {}) {
           abort: async () => { state.aborted++; },
           disconnect: async () => {
             state.disconnected++;
+            if (options.disconnectNever) return new Promise(() => {});
             if (options.disconnectError) throw new Error("private-disconnect-error");
           },
-          rpc: { tools: {
-            initializeAndValidate: async () => {},
-            getCurrentMetadata: async () => ({ tools: options.noTool ? [] : [{ name: "image_generation" }] }),
-            execute: async ({ name, arguments: args }) => {
-              state.executions++;
-              state.args = args;
-              assert.equal(name, "image_generation");
-              const permission = await sessionOptions.onPermissionRequest({ kind: "custom-tool", toolName: name });
-              assert.equal(permission.kind, "approved");
-              if (options.websocket) {
-                await clientOptions.requestHandler.openWebSocket({
-                  signal, transport: "websocket", url: "wss://api.githubcopilot.com/chat",
-                  requestId: "fixture-websocket",
-                });
-              }
-              if (options.metadataGet) {
-                const metadataUrl = options.metadataUrl ?? "https://api.githubcopilot.com/models";
-                await clientOptions.requestHandler.sendRequest(new Request(metadataUrl),
-                  { signal, transport: "http", requestId: "fixture-models", url: metadataUrl });
-              }
-              const route = options.route ?? (args.input_images ? "/v1/images/edits" : "/v1/images/generations");
-              const ctx = { signal, transport: "http",
-                url: `${options.origin ?? "https://api.githubcopilot.com"}${route}`, requestId: "fixture-request" };
-              const request = () => new Request(ctx.url, { method: "POST", body: "{}" });
-              const response = await clientOptions.requestHandler.sendRequest(request(), ctx);
-              await response.text();
-              if (options.retry) await clientOptions.requestHandler.sendRequest(request(), ctx);
-              if (options.toolError) return { resultType: "failure", textResultForLlm: "private-provider-error" };
-              return { resultType: "success", textResultForLlm: "Generated" };
+          rpc: {
+            accounts: {
+              get: async () => ({
+                kind: "activeAccount",
+                ...(options.noActiveAuth ? {} : { authInfo: {
+                  type: options.activeAuthType ?? "user",
+                  host: options.activeHost ?? "https://github.com",
+                  login: options.activeLogin ?? options.login ?? "fixture-user",
+                  copilotUser: options.noCopilotUser ? undefined : {
+                    analytics_tracking_id: "fixture-tracking",
+                    chat_enabled: true,
+                    copilot_plan: "enterprise",
+                    endpoints: { api: "https://api.enterprise.githubcopilot.com" },
+                    login: options.activeLogin ?? options.login ?? "fixture-user",
+                  },
+                } }),
+              }),
             },
-          } },
+            gitHubAuth: {
+              setCredentials: async ({ credentials }) => {
+                state.pins++;
+                state.pinnedCredentials = credentials;
+                return { success: options.pinFails !== true, copilotUserResolved: options.pinResolved !== false };
+              },
+              getStatus: async () => {
+                state.sessionChecks++;
+                return {
+                  isAuthenticated: options.sessionAuthenticated ?? true,
+                  authType: options.authType ?? "user",
+                  host: options.sessionHost ?? "https://github.com",
+                  login: options.changedAccount && state.sessionChecks > 1
+                    ? "other-user"
+                    : (options.sessionLogin ?? options.login ?? "fixture-user"),
+                  copilotPlan: options.copilotPlan ?? "enterprise",
+                };
+              },
+            },
+            tools: {
+              initializeAndValidate: async () => {},
+              getCurrentMetadata: async () => ({ tools: options.noTool ? [] : [{ name: "image_generation" }] }),
+              execute: async ({ name, arguments: args }) => {
+                state.executions++;
+                state.args = args;
+                assert.equal(name, "image_generation");
+                const permission = await sessionOptions.onPermissionRequest({ kind: "custom-tool", toolName: name });
+                assert.equal(permission.kind, "approved");
+                if (options.skipPost) return { resultType: "success", textResultForLlm: "No request" };
+                if (options.websocket) {
+                  await clientOptions.requestHandler.openWebSocket({
+                    signal, transport: "websocket", url: "wss://api.githubcopilot.com/chat",
+                    requestId: "fixture-websocket",
+                  });
+                }
+                if (options.metadataGet) {
+                  const metadataUrl = options.metadataUrl ?? "https://api.githubcopilot.com/models";
+                  await clientOptions.requestHandler.sendRequest(new Request(metadataUrl),
+                    { signal, transport: "http", requestId: "fixture-models", url: metadataUrl,
+                      ...(options.omitSessionId ? {} : { sessionId: options.requestSessionId ?? "fixture-session" }) });
+                }
+                const route = options.route ?? (args.input_images ? "/v1/images/edits" : "/v1/images/generations");
+                const ctx = { signal, transport: "http",
+                  url: `${options.origin ?? "https://api.githubcopilot.com"}${route}`, requestId: "fixture-request",
+                  ...(options.omitSessionId ? {} : { sessionId: options.requestSessionId ?? "fixture-session" }) };
+                const request = () => new Request(ctx.url, { method: "POST", body: "{}" });
+                const response = await clientOptions.requestHandler.sendRequest(request(), ctx);
+                await response.text();
+                if (options.retry) await clientOptions.requestHandler.sendRequest(request(), ctx);
+                if (options.toolError) return { resultType: "failure", textResultForLlm: "private-provider-error" };
+                return { resultType: "success", textResultForLlm: "Generated" };
+              },
+            },
+          },
         };
       },
     };
@@ -120,6 +170,8 @@ test("native generation preserves the prompt, records observed metadata and uses
   assert.equal(result.quality, "low");
   assert.equal(result.model, "gpt-image-2.5-sunburst");
   assert.equal(result.usage.ai_credits, 0.661);
+  assert.equal(result.authSource, "user");
+  assert.equal(result.copilotPlan, "enterprise");
   assert.deepEqual(state.args, { prompt: input.prompt });
   assert.equal(state.posts, 1);
   assert.equal(state.deleted, 1);
@@ -145,12 +197,63 @@ test("edit hands only the explicit approved reference to the native tool and pre
 });
 
 test("absent, mismatched and changed accounts refuse image transmission without another identity", async () => {
-  for (const options of [{ authenticated: false }, { login: "other-user" }, { changedAccount: true }]) {
+  for (const options of [
+    { noActiveAuth: true },
+    { activeAuthType: "gh-cli" },
+    { activeAuthType: "env" },
+    { activeLogin: "other-user" },
+    { activeHost: "https://other.example" },
+    { noCopilotUser: true },
+    { pinFails: true },
+    { pinResolved: false },
+    { globalAuthType: "gh-cli" },
+    { sessionAuthenticated: false },
+    { changedAccount: true },
+    { sessionLogin: "other-user" },
+    { requestSessionId: "other-session" },
+  ]) {
     const { factory, fetcher, state } = fixture(options);
     await assert.rejects(generate(config, input, signal, fetcher, factory), error => error.code === "authentication");
     assert.equal(state.posts, 0);
     assert.equal(state.stopped, 1);
   }
+});
+
+test("missing runtime sessionId is accepted only during the owned native invocation gate", async () => {
+  const owned = fixture({ omitSessionId: true });
+  await generate(config, input, signal, owned.fetcher, owned.factory);
+  assert.equal(owned.state.posts, 1);
+  const outside = fixture({ omitSessionId: true, skipPost: true });
+  await assert.rejects(generate(config, input, signal, outside.fetcher, outside.factory));
+  assert.equal(outside.state.posts, 0);
+  const url = "https://api.githubcopilot.com/v1/images/generations";
+  await assert.rejects(
+    outside.state.requestHandler.sendRequest(new Request(url, { method: "POST", body: "{}" }),
+      { signal, transport: "http", requestId: "outside-gate", url }),
+    error => error.code === "authentication",
+  );
+  assert.equal(outside.state.posts, 0);
+});
+
+test("owned request session identity is attested twice with credential-free session metadata", async () => {
+  const { factory, fetcher, state } = fixture();
+  await generate(config, input, signal, fetcher, factory);
+  assert.equal(state.pins, 1);
+  assert.deepEqual(state.pinnedCredentials, {
+    type: "user",
+    host: "https://github.com",
+    login: "fixture-user",
+    copilotUser: {
+      analytics_tracking_id: "fixture-tracking",
+      chat_enabled: true,
+      copilot_plan: "enterprise",
+      endpoints: { api: "https://api.enterprise.githubcopilot.com" },
+      login: "fixture-user",
+    },
+  });
+  assert.equal("token" in state.pinnedCredentials, false);
+  assert.equal(state.sessionChecks, 2);
+  assert.equal(state.posts, 1);
 });
 
 test("unsupported runtime, missing native tool and pre-cancellation refuse submission", async () => {
@@ -175,6 +278,12 @@ test("one-request guard prevents SDK retries, unrelated origins/routes and webso
     { retry: true }, { route: "/chat/completions" }, { route: "/v1/images/edits" },
     { origin: "https://example.githubcopilot.com" }, { websocket: true },
     { metadataGet: true, metadataUrl: "https://api.githubcopilot.com/private" },
+    { route: "/v1/images/generations?unreviewed=1" },
+    { route: "/v1/images/generations#unreviewed" },
+    { origin: "https://user:password@api.githubcopilot.com" },
+    { metadataGet: true, metadataUrl: "https://api.githubcopilot.com/models?unreviewed=1" },
+    { metadataGet: true, metadataUrl: "https://api.githubcopilot.com/models#unreviewed" },
+    { metadataGet: true, metadataUrl: "https://user:password@api.githubcopilot.com/models" },
   ]) {
     const { factory, fetcher, state } = fixture(options);
     await assert.rejects(generate(config, input, signal, fetcher, factory));
@@ -236,6 +345,7 @@ test("bounded responses, policy failures and cleanup failures remain sanitized u
     body: { error: { code: "content_policy_violation", message: "private-policy-detail" } },
     headers: { "x-request-id": "safe-request-id" },
   });
+
   await assert.rejects(generate(config, input, signal, policy.fetcher, policy.factory), error => {
     assert.equal(error.code, "policy");
     assert.equal(error.requestId, "safe-request-id");
@@ -253,6 +363,27 @@ test("bounded responses, policy failures and cleanup failures remain sanitized u
       return true;
     });
     assert.equal(failed.state.posts, 1);
+  }
+});
+
+test("response parsing and every cleanup stage settle at the operation deadline", async () => {
+  const cases = [
+    { fetch: async () => new Response(new ReadableStream({ start() {} })) },
+    { disconnectNever: true },
+    { deleteNever: true },
+    { stopNever: true },
+  ];
+  for (const options of cases) {
+    const pending = fixture(options);
+    const outcome = await Promise.race([
+      generate(config, input, AbortSignal.timeout(50), pending.fetcher, pending.factory)
+        .then(() => "resolved", error => error),
+      new Promise(resolve => setTimeout(() => resolve("still-pending"), 300)),
+    ]);
+    assert.notEqual(outcome, "still-pending");
+    assert.notEqual(outcome, "resolved");
+    assert.notEqual(outcome.knownFailure, true);
+    assert.equal(pending.state.posts, 1);
   }
 });
 
