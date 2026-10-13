@@ -134,7 +134,7 @@ export function fixture(options = {}) {
                   const path = options.readPath ?? args.input_images[0].path;
                   const readPermission = await sessionOptions.onPermissionRequest({
                     kind: "read", path, resolvedPath: path,
-                    managedApprovalRequired: options.managedRead ?? false,
+                    ...(options.managedRead !== undefined ? { managedApprovalRequired: options.managedRead } : {}),
                     intention: "Read selected image reference",
                   }, invocation);
                   state.permissions.push(readPermission);
@@ -146,7 +146,7 @@ export function fixture(options = {}) {
                   }
                   if (options.duplicateRead) {
                     const duplicate = await sessionOptions.onPermissionRequest({
-                      kind: "read", path, resolvedPath: path, managedApprovalRequired: false,
+                      kind: "read", path, resolvedPath: path,
                       intention: "Read selected image reference again",
                     }, invocation);
                     state.permissions.push(duplicate);
@@ -250,6 +250,8 @@ test("edit rejects any read outside the exact staged reference or requiring mana
   for (const options of [
     { readPath: "/different/private-reference.png" },
     { managedRead: true },
+    { managedRead: null },
+    { managedRead: "false" },
     { permissionSessionId: "foreign-session" },
   ]) {
     const denied = fixture(options);

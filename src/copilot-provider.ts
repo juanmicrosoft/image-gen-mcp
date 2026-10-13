@@ -299,7 +299,8 @@ export async function requestCopilotImage(
           toolPermissionGranted = true;
           return { kind: "approve-once" };
         }
-        if (request.kind === "read" && request.managedApprovalRequired === false &&
+        if (request.kind === "read" &&
+            (request.managedApprovalRequired === undefined || request.managedApprovalRequired === false) &&
             approvedReference !== undefined && request.path === approvedReference) {
           return { kind: "approve-once" };
         }
