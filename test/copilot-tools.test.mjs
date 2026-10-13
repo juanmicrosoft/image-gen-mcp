@@ -54,7 +54,19 @@ async function setup(t, preview = false) {
           getCurrentMetadata: async () => ({ tools: [{ name: "image_generation" }] }),
           execute: async ({ arguments: args }) => {
             state.lastArguments = args;
-            assert.equal((await sessionOptions.onPermissionRequest({ kind: "custom-tool", toolName: "image_generation" })).kind, "approved");
+            const invocation = { sessionId: "fixture", managedSettingsEnabled: false };
+            assert.equal((await sessionOptions.onPermissionRequest({
+              kind: "custom-tool", toolName: "image_generation", managedApprovalRequired: false,
+            }, invocation)).kind, "approve-once");
+            if (args.input_images) {
+              const path = args.input_images[0].path;
+              for (let index = 0; index < 2; index++) {
+                assert.equal((await sessionOptions.onPermissionRequest({
+                  kind: "read", path, resolvedPath: path, managedApprovalRequired: false,
+                  intention: "Read selected image reference",
+                }, invocation)).kind, "approve-once");
+              }
+            }
             const url = `https://api.githubcopilot.com/v1/images/${args.input_images ? "edits" : "generations"}`;
             const response = await options.requestHandler.sendRequest(new Request(url, { method: "POST", body: "{}" }),
               { signal, transport: "http", requestId: "fixture-request", url });

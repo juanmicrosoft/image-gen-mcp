@@ -1,5 +1,5 @@
 import { CopilotClient, CopilotRequestHandler, RuntimeConnection, type CopilotClientOptions, type CopilotRequestContext } from "@github/copilot-sdk";
-import { mkdtemp, writeFile, unlink, rmdir } from "node:fs/promises";
+import { mkdtemp, writeFile, unlink, rmdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { MAX_IMAGE_BYTES, validatePng } from "./artifacts.js";
@@ -138,7 +138,7 @@ export async function checkCopilotIdentity(
     session = await withAbort(client.createSession({
       availableTools: [], enableConfigDiscovery: false, enableSkills: false,
       enableSessionStore: false, skipCustomInstructions: true, enableSessionTelemetry: false,
-      mcpServers: {}, onPermissionRequest: () => ({ kind: "denied-interactively-by-user" }),
+      mcpServers: {}, onPermissionRequest: () => ({ kind: "reject" }),
     }), deadline);
     identity = await pinSessionIdentity(session, config, expected.host, deadline);
   } catch (error) {
@@ -262,6 +262,7 @@ export async function requestCopilotImage(
   let session: Awaited<ReturnType<Client["createSession"]>> | undefined;
   let temporary: string | undefined;
   let reference: string | undefined;
+  let approvedReference: string | undefined;
   try {
     await withAbort(client.start(), deadline);
     const status = await withAbort(client.getStatus(), deadline);
@@ -275,17 +276,25 @@ export async function requestCopilotImage(
       temporary = await mkdtemp(join(config.outputRoot, ".copilot-reference-"));
       reference = join(temporary, "reference.png");
       await writeFile(reference, source, { mode: 0o600, flag: "wx" });
+      approvedReference = await realpath(reference);
     }
-    let approved = false;
+    let toolPermissionGranted = false;
     session = await withAbort(client.createSession({
       imageGeneration: { enabled: true }, availableTools: ["image_generation"],
       enableConfigDiscovery: false, enableSkills: false, enableSessionStore: false,
       skipCustomInstructions: true, enableSessionTelemetry: false, mcpServers: {},
-      onPermissionRequest: request => {
-        const allow = request.kind === "custom-tool" && request.toolName === "image_generation" &&
-          !request.managedApprovalRequired && !approved && !deadline.aborted;
-        if (allow) approved = true;
-        return { kind: allow ? "approved" : "denied-interactively-by-user" };
+      onPermissionRequest: (request, invocation) => {
+        if (deadline.aborted || !invocationActive || invocation.sessionId !== session?.sessionId) return { kind: "reject" };
+        if (request.kind === "custom-tool" && request.toolName === "image_generation" &&
+            request.managedApprovalRequired !== true && !toolPermissionGranted) {
+          toolPermissionGranted = true;
+          return { kind: "approve-once" };
+        }
+        if (request.kind === "read" && request.managedApprovalRequired === false &&
+            approvedReference !== undefined && request.path === approvedReference) {
+          return { kind: "approve-once" };
+        }
+        return { kind: "reject" };
       },
     }), deadline);
     sessionIdentity = await pinSessionIdentity(session, config, expectedHost, deadline);

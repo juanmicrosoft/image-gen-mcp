@@ -25,7 +25,7 @@ const responseBody = {
 export function fixture(options = {}) {
   const state = {
     creates: 0, executions: 0, gets: 0, posts: 0, stopped: 0, deleted: 0,
-    disconnected: 0, aborted: 0, sessionChecks: 0, pins: 0,
+    disconnected: 0, aborted: 0, sessionChecks: 0, pins: 0, permissions: [],
   };
   const fetcher = async (request, init) => {
     if (request.method === "POST") state.posts++;
@@ -115,8 +115,43 @@ export function fixture(options = {}) {
                 state.executions++;
                 state.args = args;
                 assert.equal(name, "image_generation");
-                const permission = await sessionOptions.onPermissionRequest({ kind: "custom-tool", toolName: name });
-                assert.equal(permission.kind, "approved");
+                const invocation = {
+                  sessionId: options.permissionSessionId ?? "fixture-session",
+                  managedSettingsEnabled: options.managedSettingsEnabled ?? false,
+                };
+                const permission = await sessionOptions.onPermissionRequest(
+                  { kind: "custom-tool", toolName: name, managedApprovalRequired: options.managedTool ?? false },
+                  invocation,
+                );
+                state.permissions.push(permission);
+                if (permission.kind !== "approve-once") {
+                  return { resultType: "failure", textResultForLlm: "private-custom-tool-permission" };
+                }
+                if (args.input_images) {
+                  const path = options.readPath ?? args.input_images[0].path;
+                  const readPermission = await sessionOptions.onPermissionRequest({
+                    kind: "read", path, resolvedPath: path,
+                    managedApprovalRequired: options.managedRead ?? false,
+                    intention: "Read selected image reference",
+                  }, invocation);
+                  state.permissions.push(readPermission);
+                  if (readPermission.kind !== "approve-once") {
+                    return {
+                      resultType: "failure",
+                      textResultForLlm: `private-read-permission ${path}`,
+                    };
+                  }
+                  if (options.duplicateRead) {
+                    const duplicate = await sessionOptions.onPermissionRequest({
+                      kind: "read", path, resolvedPath: path, managedApprovalRequired: false,
+                      intention: "Read selected image reference again",
+                    }, invocation);
+                    state.permissions.push(duplicate);
+                    if (duplicate.kind !== "approve-once") {
+                      return { resultType: "failure", textResultForLlm: "private-duplicate-read" };
+                    }
+                  }
+                }
                 if (options.skipPost) return { resultType: "success", textResultForLlm: "No request" };
                 if (options.websocket) {
                   await clientOptions.requestHandler.openWebSocket({
@@ -184,7 +219,8 @@ test("native generation preserves the prompt, records observed metadata and uses
 });
 
 test("edit hands only the explicit approved reference to the native tool and preserves requested options", async () => {
-  const { factory, fetcher, state } = fixture({ body: { ...responseBody, size: "1024x1024", quality: "high",
+  const { factory, fetcher, state } = fixture({ duplicateRead: true,
+    body: { ...responseBody, size: "1024x1024", quality: "high",
     data: [{ b64_json: (await sharp(png).resize(1024, 1024).png().toBuffer()).toString("base64") }] } });
   const result = await edit(config, { ...input, size: "1024x1024", quality: "high" }, png, signal, fetcher, factory);
   assert.equal(result.size, "1024x1024");
@@ -193,7 +229,41 @@ test("edit hands only the explicit approved reference to the native tool and pre
   assert.equal(state.args.input_images.length, 1);
   assert.equal(typeof state.args.input_images[0].path, "string");
   assert.ok(state.args.input_images[0].path.startsWith(`${providerRoot}/.copilot-reference-`));
+  assert.equal(state.permissions.length, 3);
+  assert.equal(state.permissions[1].kind, "approve-once");
+  assert.equal(state.permissions[2].kind, "approve-once");
   assert.equal(state.posts, 1);
+});
+
+test("edit rejects any read outside the exact staged reference or requiring managed approval before POST", async () => {
+  for (const options of [
+    { readPath: "/different/private-reference.png" },
+    { managedRead: true },
+    { permissionSessionId: "foreign-session" },
+  ]) {
+    const denied = fixture(options);
+    await assert.rejects(edit(config, input, png, signal, denied.fetcher, denied.factory), error => {
+      assert.equal(error.code, "provider_output");
+      assert.equal(error.knownFailure, true);
+      assert.doesNotMatch(error.message, /different|private-reference|private-read/);
+      return true;
+    });
+    assert.equal(denied.state.posts, 0);
+    assert.ok(denied.state.permissions.length >= 1);
+    assert.equal(denied.state.permissions.at(-1).kind, "reject");
+  }
+});
+
+test("exact staged reads are rejected outside the active owned invocation", async () => {
+  const outside = fixture({ skipPost: true });
+  await assert.rejects(edit(config, input, png, signal, outside.fetcher, outside.factory));
+  const path = outside.state.args.input_images[0].path;
+  const decision = await outside.state.sessionOptions.onPermissionRequest({
+    kind: "read", path, resolvedPath: path, managedApprovalRequired: false,
+    intention: "Read selected image reference after invocation",
+  }, { sessionId: "fixture-session", managedSettingsEnabled: false });
+  assert.equal(decision.kind, "reject");
+  assert.equal(outside.state.posts, 0);
 });
 
 test("absent, mismatched and changed accounts refuse image transmission without another identity", async () => {
