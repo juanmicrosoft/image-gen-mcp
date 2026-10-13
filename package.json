@@ -45,8 +45,8 @@
   "dependencies": {
     "@azure/identity": "4.13.3",
     "@github/copilot-sdk": "1.0.20",
-    "@modelcontextprotocol/sdk": "1.30.0",
-    "sharp": "0.35.4",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "sharp": "0.35.5",
     "zod": "4.6.5"
   },
   "devDependencies": {
