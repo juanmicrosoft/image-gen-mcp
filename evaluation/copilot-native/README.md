@@ -24,6 +24,8 @@ Both edits changed the watering can from silver to vivid blue while retaining th
 
 The mixed revisions are intentional and must remain visible: stock generation ran before the final scoped selected-reference read fix, while the other three cases ran from `49e36bf`. The generation path was unchanged by that read-only edit repair.
 
+The contribution later received the separate dependency upgrade proposed in juanmicrosoft/image-gen-mcp#101 (MCP SDK `1.31.0`, Sharp `0.35.5`). The combined source passed the production audit, all 80 offline tests, typecheck/build, the presentation test and clean package discovery. These retained paid image cases were not rerun after that dependency-only change and must not be described as live qualification of the upgraded dependencies.
+
 ## Isolation and launcher scope
 
 The stock case launched the SDK runtime directly with a session-scoped MCP configuration. The Agency case used Agency `2026.10.12.4` with `--no-aec --no-default-mcps --no-config-plugins`; its Copilot child used `--no-custom-instructions --disable-builtin-mcps --available-tools mcp:*`, the session-scoped MCP configuration and exact MCP tool grants.
