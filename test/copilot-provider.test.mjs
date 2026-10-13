@@ -97,6 +97,9 @@ export function fixture(options = {}) {
               },
               getStatus: async () => {
                 state.sessionChecks++;
+                if (options.deferPostIdentity && state.sessionChecks === 2) {
+                  await new Promise(resolve => { state.releasePostIdentity = resolve; });
+                }
                 return {
                   isAuthenticated: options.sessionAuthenticated ?? true,
                   authType: options.authType ?? "user",
@@ -170,6 +173,14 @@ export function fixture(options = {}) {
                   url: `${options.origin ?? "https://api.githubcopilot.com"}${route}`, requestId: "fixture-request",
                   ...(options.omitSessionId ? {} : { sessionId: options.requestSessionId ?? "fixture-session" }) };
                 const request = () => new Request(ctx.url, { method: "POST", body: "{}" });
+                if (options.concurrentPosts) {
+                  const first = clientOptions.requestHandler.sendRequest(request(), ctx);
+                  await new Promise(resolve => setImmediate(resolve));
+                  const second = clientOptions.requestHandler.sendRequest(request(), ctx);
+                  state.releasePostIdentity?.();
+                  state.concurrentPostResults = await Promise.allSettled([first, second]);
+                  return { resultType: "failure", textResultForLlm: "concurrent native callback" };
+                }
                 const response = await clientOptions.requestHandler.sendRequest(request(), ctx);
                 await response.text();
                 if (options.retry) await clientOptions.requestHandler.sendRequest(request(), ctx);
@@ -362,6 +373,17 @@ test("one-request guard prevents SDK retries, unrelated origins/routes and webso
   }
 });
 
+test("concurrent native POST callbacks reserve one slot atomically and cancel before forwarding", async () => {
+  const raced = fixture({ concurrentPosts: true, deferPostIdentity: true });
+  await assert.rejects(generate(config, input, signal, raced.fetcher, raced.factory), error => {
+    assert.equal(error.code, "permission");
+    assert.equal(error.knownFailure, true);
+    return true;
+  });
+  assert.equal(raced.state.posts, 0);
+  assert.deepEqual(raced.state.concurrentPostResults.map(result => result.status), ["rejected", "rejected"]);
+});
+
 test("malformed outputs, missing auto metadata and private service errors stay failures", async () => {
   for (const options of [
     { body: {} }, { body: { ...responseBody, data: [{ url: "https://private.example/image.png" }] } },
@@ -457,7 +479,7 @@ test("response parsing and every cleanup stage settle at the operation deadline"
   }
 });
 
-test("portable runtime is default, explicit runtime paths are passed through, and allowed metadata GET is nonbillable", async () => {
+test("bundled and explicit runtimes always use private stdio and allowed metadata GET is nonbillable", async () => {
   let defaultOptions;
   const portable = fixture({ metadataGet: true, fetch: async request => {
     if (request.method === "GET") return Response.json({ data: [] });
@@ -468,7 +490,8 @@ test("portable runtime is default, explicit runtime paths are passed through, an
     return portable.factory(options);
   };
   await generate(config, input, signal, portable.fetcher, portableFactory);
-  assert.equal(defaultOptions.connection, undefined);
+  assert.equal(defaultOptions.connection.kind, "stdio");
+  assert.equal(defaultOptions.connection.path, undefined);
   assert.equal(portable.state.gets, 1);
   assert.equal(portable.state.posts, 1);
 

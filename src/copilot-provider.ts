@@ -119,7 +119,7 @@ async function pinSessionIdentity(
 
 function clientOptions(config: CopilotConfiguration): CopilotClientOptions {
   return {
-    ...(config.cliPath ? { connection: RuntimeConnection.forStdio({ path: config.cliPath }) } : {}),
+    connection: RuntimeConnection.forStdio(config.cliPath ? { path: config.cliPath } : undefined),
     logLevel: "error", useLoggedInUser: true,
   };
 }
@@ -177,6 +177,7 @@ export async function requestCopilotImage(
   let result: CopilotImageResult | undefined;
   let failure: unknown;
   let submitted = false;
+  let postReserved = false;
   let invocationActive = false;
   let sessionIdentity: CopilotIdentity | undefined;
   let expectedHost: string | undefined;
@@ -201,14 +202,22 @@ export async function requestCopilotImage(
           sessionIdentity = await checkSessionIdentity(session, config, expectedHost, requestSignal);
           return await fetcher(request, { signal: requestSignal, redirect: "error" });
         }
-        if (request.method !== "POST" || url.pathname !== route || submitted) {
+        if (request.method !== "POST" || url.pathname !== route) {
           throw new ImageError("permission", "Only one native image request is permitted. Chat inference, automatic retries and other endpoints are blocked.", !submitted);
         }
         if (!invocationActive) {
           throw new ImageError("authentication", "Copilot image transport was invoked outside the owned native-tool execution; no request was forwarded.", true);
         }
+        if (postReserved) {
+          throw new ImageError("permission", "A native image request is already reserved. Concurrent callbacks and retries are blocked.", !submitted);
+        }
+        postReserved = true;
         if (!expectedHost) throw new ImageError("authentication", "Copilot session identity was not established.", true);
         sessionIdentity = await checkSessionIdentity(session, config, expectedHost, requestSignal);
+        if (failure) throw failure;
+        if (!invocationActive) {
+          throw new ImageError("authentication", "Copilot image transport closed before forwarding; no request was sent.", true);
+        }
         requestSignal.throwIfAborted();
         submitted = true;
         const response = await fetcher(request, { signal: requestSignal, redirect: "error" });

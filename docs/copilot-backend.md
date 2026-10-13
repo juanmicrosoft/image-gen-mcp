@@ -20,7 +20,7 @@ IMAGE_GEN_INPUT_DIRS=["/ABSOLUTE/APPROVED/INPUT/DIRECTORY"]
 IMAGE_GEN_PREVIEW=false
 ```
 
-Omit `IMAGE_GEN_COPILOT_CLI_PATH` to use the runtime bundled/resolved by the pinned `@github/copilot-sdk`. Do not point at an SDK cache path. Copilot mode does not accept an Azure API key or another `IMAGE_GEN_AUTH` selection and never falls back to Azure.
+Omit `IMAGE_GEN_COPILOT_CLI_PATH` to use the runtime bundled/resolved by the pinned `@github/copilot-sdk`. The integration always constructs `RuntimeConnection.forStdio(...)`, including when the path is omitted, so ambient `COPILOT_SDK_DEFAULT_CONNECTION=inprocess` cannot move this security boundary into a shared in-process runtime. Do not point at an SDK cache path. Copilot mode does not accept an Azure API key or another `IMAGE_GEN_AUTH` selection and never falls back to Azure.
 
 Use [the native example](../examples/copilot-native.mcp.json) as a private session configuration. For stock Copilot CLI, pass it with `--additional-mcp-config` while qualifying the backend. A deliberate user-wide merge into `~/.copilot/mcp-config.json` is also possible, but exposes the billable tools to every CLI session.
 
