@@ -41,12 +41,7 @@ Copilot mode requires `IMAGE_GEN_BACKEND=copilot`,
 Azure endpoint, deployment, tenant and API-key settings do not select or
 authorize this route; conflicting Azure key/auth settings are rejected.
 
-The MCP launches an isolated official SDK client. It checks the current Copilot
-login before creating the native-tool session and again immediately before the
-single permitted image POST. It never extracts or forwards a token, changes the
-signed-in account, borrows the parent MCP host's credentials, or falls back to
-Azure. The optional CLI path must be absolute; omitting it uses the SDK's
-bundled runtime rather than a machine-specific cache path.
+The source-candidate MCP launches one private official SDK stdio client and one native-tool session. It requires the expected identity to be an existing local OAuth `user`, reads only credential-free active-account metadata, and pins that same host/login/Copilot-user metadata with `session.rpc.gitHubAuth.setCredentials`; the bearer remains in the runtime secret store. It verifies session authentication after the pin and again inside the HTTP bridge before the single permitted image POST. `gh-cli`, environment-token and other auth modes fail closed because this integration will not read their tokens. The SDK bridge necessarily carries the runtime-authorized request headers; this integration does not manually read, export or replace bearer tokens, switch global accounts, accept externally supplied endpoints, or fall back to Azure. The optional CLI path must be absolute; omitting it uses the SDK's bundled runtime rather than a machine-specific cache path. Paid qualification remains blocked pending fresh review of this boundary.
 
 `get_capabilities({check_credentials:true})` may start the runtime and verify
 the expected account without generating an image. That result remains

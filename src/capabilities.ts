@@ -34,6 +34,7 @@ export function capabilitiesTool(load: () => Configuration = loadConfiguration, 
         inference: { status: "unverified", detail: "No billable image request is made by diagnostics." },
       };
       let config: Configuration | undefined;
+      let copilotIdentity: Awaited<ReturnType<typeof checkCopilotIdentity>> | undefined;
       try {
         config = load();
         checks.configuration = { status: "passed", detail: "Configuration syntax is valid; network reachability, paths and deployment existence remain unverified." };
@@ -47,7 +48,7 @@ export function capabilitiesTool(load: () => Configuration = loadConfiguration, 
         try {
           signal.throwIfAborted();
           if (config.backend === "copilot") {
-            await checkCopilotIdentity(config, signal, clientFactory);
+            copilotIdentity = await checkCopilotIdentity(config, signal, clientFactory);
           } else {
             await config.headers(signal);
           }
@@ -79,7 +80,11 @@ export function capabilitiesTool(load: () => Configuration = loadConfiguration, 
         },
         deployment: config?.backend === "copilot" ? null : config?.deployment ?? null,
         authMode: config?.authMode ?? null,
-        ...(config?.backend === "copilot" ? { authIdentity: { expectedLogin: config.expectedLogin } } : {}),
+        ...(config?.backend === "copilot" ? { authIdentity: {
+          expectedLogin: config.expectedLogin,
+          authSource: copilotIdentity?.authSource ?? null,
+          copilotPlan: copilotIdentity?.copilotPlan ?? null,
+        } } : {}),
         profile: {
           sizes: config?.backend === "copilot" ? copilotSizes : sizes,
           qualities: config?.backend === "copilot" ? copilotQualities : qualities,

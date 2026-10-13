@@ -51,11 +51,9 @@ For the prompt-first CLI-auth path, set `IMAGE_GEN_PREVIEW=false` and unset
 `AZURE_OPENAI_API_KEY` before running the helper. Explicitly add an isolated
 `AZURE_CONFIG_DIR` to the private server `env` if used; the helper does not copy it.
 
-### Experimental native Copilot backend
+### Source-candidate native Copilot backend
 
-The Azure helper above does not configure the native Copilot route. Start from
-[the dedicated example](../examples/copilot-native.mcp.json), replace its
-absolute paths/login, and keep it separate from the Azure server entry.
+The already-published `0.1.0` package does not contain the native Copilot route. After the source candidate's review gate clears, build this branch/source checkout, start from [the dedicated example](../examples/copilot-native.mcp.json), replace its absolute paths/login, and keep it separate from the Azure server entry.
 
 For stock Copilot CLI, either pass the file only to the intended session with
 `--additional-mcp-config @/absolute/copilot-native.mcp.json`, or deliberately

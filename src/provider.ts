@@ -19,7 +19,33 @@ const responseSchema = z.object({
   usage: z.unknown().optional(),
 });
 
-export async function readResponse(response: Response, provider = "Azure"): Promise<unknown> {
+async function readChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal?: AbortSignal,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (!signal) return reader.read();
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", abort);
+      callback();
+    };
+    const abort = () => {
+      void reader.cancel().catch(() => {});
+      finish(() => reject(signal.reason));
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    void reader.read().then(
+      value => finish(() => resolve(value)),
+      error => finish(() => reject(error)),
+    );
+  });
+}
+
+export async function readResponse(response: Response, provider = "Azure", signal?: AbortSignal): Promise<unknown> {
   if (!response.body) {
     if (!response.ok) return null;
     throw new ImageError("provider_output", `${provider} returned an empty response; charges may apply.`);
@@ -29,7 +55,7 @@ export async function readResponse(response: Response, provider = "Azure"): Prom
   let length = 0;
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readChunk(reader, signal);
       if (done) break;
       length += value.length;
       if (length > MAX_RESPONSE_BYTES) {
