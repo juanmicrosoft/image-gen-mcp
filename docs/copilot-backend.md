@@ -58,7 +58,7 @@ Offline tests cover global-account/session-account divergence, session-status mi
 
 ## Live qualification
 
-The [public qualification record](https://github.com/ourostack/image-gen-mcp/tree/feat/copilot-backend/evaluation/copilot-native) contains the synthetic prompts, versions, mixed candidate revisions, operation/artifact lineage, source hashes and retained outputs for four successful MCP invocations:
+The [public qualification record](https://github.com/juanmicrosoft/image-gen-mcp/tree/main/evaluation/copilot-native) contains the synthetic prompts, versions, mixed candidate revisions, operation/artifact lineage, source hashes and retained outputs for four successful MCP invocations:
 
 | Launcher/action | Result | Service-reported image usage |
 | --- | --- | ---: |

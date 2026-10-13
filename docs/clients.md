@@ -53,7 +53,7 @@ For the prompt-first CLI-auth path, set `IMAGE_GEN_PREVIEW=false` and unset
 
 ### Source-candidate native Copilot backend
 
-The already-published `0.1.0` package does not contain the native Copilot route. Build the intended source revision, start from [the dedicated example](../examples/copilot-native.mcp.json), replace its absolute paths/login, and keep it separate from the Azure server entry. The [bounded qualification record](https://github.com/ourostack/image-gen-mcp/tree/feat/copilot-backend/evaluation/copilot-native) covers only the listed source revisions, local macOS OAuth-user/Enterprise-plan environment and isolated launchers.
+The already-published `0.1.0` package does not contain the native Copilot route. Build the intended source revision, start from [the dedicated example](../examples/copilot-native.mcp.json), replace its absolute paths/login, and keep it separate from the Azure server entry. The [bounded qualification record](https://github.com/juanmicrosoft/image-gen-mcp/tree/main/evaluation/copilot-native) covers only the listed source revisions, local macOS OAuth-user/Enterprise-plan environment and isolated launchers.
 
 The qualified stock path invoked the Copilot runtime directly with only the session-scoped native MCP configuration and exact MCP grants. Pass the file only to the intended session with `--additional-mcp-config @/absolute/copilot-native.mcp.json`. Merging the entry into private user `~/.copilot/mcp-config.json` is technically possible but was not qualified and exposes billable image tools to every CLI session.
 
